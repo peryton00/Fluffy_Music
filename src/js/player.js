@@ -1,0 +1,271 @@
+// src/js/player.js — Music player state and controls
+
+import * as YT from './youtube.js';
+import { FM } from './storage.js';
+import { isLoggedIn, getCurrentUser } from './auth.js';
+import { updateLastPlayedCloud } from './sync.js';
+
+let currentTrack = null;
+let currentQueue = [];
+let currentIndex = 0;
+let isShuffled = false;
+let shuffledQueue = [];
+let repeatMode = 'none'; // 'none' | 'all' | 'one'
+let progressInterval = null;
+let isDraggingProgress = false;
+
+// ── Track Loading ─────────────────────────────────────────────────────────────
+
+/**
+ * Loads a track, updates player UI, and triggers YouTube search + play.
+ * @param {object} track - Normalized track object
+ * @param {Array} queue - Full track list
+ * @param {number} index - Track's index in queue
+ */
+export async function loadTrack(track, queue = [], index = 0) {
+  currentTrack = track;
+  currentQueue = queue;
+  currentIndex = index;
+
+  // Update player bar immediately (don't wait for YouTube)
+  if (window.updatePlayerBar) window.updatePlayerBar(track);
+  if (window.highlightCurrentTrack) window.highlightCurrentTrack(track.id);
+
+  // Update document title
+  document.title = `${track.name} – ${track.artist} | Fluffy Music`;
+
+  // Save last played
+  FM.setLastPlayed(track);
+
+  // Update Firestore last played if logged in
+  if (isLoggedIn()) {
+    const user = getCurrentUser();
+    // Don't block on this
+    updateLastPlayedCloud(user.uid, track.spotifyId).catch(() => {});
+  }
+
+  // Tell YouTube to search and play
+  await YT.searchAndPlay(track.name, track.artist);
+
+  // Start progress updates
+  startProgressInterval();
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+
+/**
+ * Toggles play/pause. Updates button UI.
+ */
+export function playPause() {
+  const state = YT.getPlayerState();
+  // YT.PlayerState: PLAYING = 1, PAUSED = 2, BUFFERING = 3
+  if (state === 1 || state === 3) {
+    YT.pause();
+    setPlayButtonState(false);
+    pauseMusicBars();
+  } else {
+    YT.play();
+    setPlayButtonState(true);
+    resumeMusicBars();
+  }
+}
+
+/**
+ * Skips to the next track, respecting repeat and shuffle settings.
+ */
+export function nextTrack() {
+  if (repeatMode === 'one') {
+    YT.seekTo(0);
+    YT.play();
+    return;
+  }
+
+  const queue = isShuffled ? shuffledQueue : currentQueue;
+  let nextIndex = currentIndex + 1;
+
+  if (nextIndex >= queue.length) {
+    if (repeatMode === 'all') {
+      nextIndex = 0;
+    } else {
+      setPlayButtonState(false);
+      pauseMusicBars();
+      return;
+    }
+  }
+
+  currentIndex = nextIndex;
+  const track = queue[nextIndex];
+  if (track) loadTrack(track, queue, nextIndex);
+}
+
+/**
+ * Goes to the previous track, or restarts current if > 3 seconds in.
+ */
+export function prevTrack() {
+  const currentTime = YT.getCurrentTime();
+  if (currentTime > 3) {
+    YT.seekTo(0);
+    return;
+  }
+
+  const queue = isShuffled ? shuffledQueue : currentQueue;
+  let prevIndex = currentIndex - 1;
+  if (prevIndex < 0) prevIndex = repeatMode === 'all' ? queue.length - 1 : 0;
+
+  currentIndex = prevIndex;
+  const track = queue[prevIndex];
+  if (track) loadTrack(track, queue, prevIndex);
+}
+
+/**
+ * Toggles shuffle mode on/off.
+ */
+export function toggleShuffle() {
+  isShuffled = !isShuffled;
+
+  if (isShuffled) {
+    // Fisher-Yates shuffle
+    shuffledQueue = [...currentQueue];
+    for (let i = shuffledQueue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
+    }
+    // Keep current track first
+    const currIdx = shuffledQueue.findIndex((t) => t.id === currentTrack?.id);
+    if (currIdx > -1) {
+      shuffledQueue.splice(currIdx, 1);
+      shuffledQueue.unshift(currentTrack);
+      currentIndex = 0;
+    }
+  }
+
+  const shuffleBtn = document.getElementById('btn-shuffle');
+  if (shuffleBtn) {
+    shuffleBtn.classList.toggle('active', isShuffled);
+    shuffleBtn.setAttribute('title', isShuffled ? 'Shuffle: On' : 'Shuffle: Off');
+  }
+}
+
+/**
+ * Cycles repeat mode: none → all → one → none.
+ */
+export function toggleRepeat() {
+  const modes = ['none', 'all', 'one'];
+  repeatMode = modes[(modes.indexOf(repeatMode) + 1) % modes.length];
+
+  const repeatBtn = document.getElementById('btn-repeat');
+  if (repeatBtn) {
+    repeatBtn.classList.toggle('active', repeatMode !== 'none');
+    repeatBtn.setAttribute('data-mode', repeatMode);
+
+    const icon = repeatBtn.querySelector('i[data-lucide]');
+    if (icon) {
+      icon.setAttribute('data-lucide', repeatMode === 'one' ? 'repeat-1' : 'repeat');
+      if (window.lucide) window.lucide.createIcons();
+    }
+    repeatBtn.setAttribute('title', `Repeat: ${repeatMode}`);
+  }
+}
+
+// ── Progress Bar ──────────────────────────────────────────────────────────────
+
+/**
+ * Starts the interval that updates the progress bar every 500ms.
+ */
+export function startProgressInterval() {
+  if (progressInterval) clearInterval(progressInterval);
+  progressInterval = setInterval(updateProgressBar, 500);
+}
+
+/**
+ * Updates the progress bar fill and time displays.
+ */
+export function updateProgressBar() {
+  if (isDraggingProgress) return;
+
+  const current = YT.getCurrentTime();
+  const duration = YT.getDuration();
+
+  const progressFill = document.getElementById('progress-fill');
+  const progressThumb = document.getElementById('progress-thumb');
+  const timeCurrentEl = document.getElementById('time-current');
+  const timeTotalEl = document.getElementById('time-total');
+
+  const pct = duration > 0 ? (current / duration) * 100 : 0;
+
+  if (progressFill) progressFill.style.width = `${pct}%`;
+  if (progressThumb) progressThumb.style.left = `${pct}%`;
+  if (timeCurrentEl) timeCurrentEl.textContent = formatTime(current * 1000);
+  if (timeTotalEl) timeTotalEl.textContent = formatTime(duration * 1000);
+}
+
+/**
+ * Seeks to a percentage of the track duration.
+ * Called when user clicks/drags the progress bar.
+ * @param {number} pct - 0 to 100
+ */
+export function seekToPercent(pct) {
+  const duration = YT.getDuration();
+  if (duration > 0) {
+    YT.seekTo((pct / 100) * duration);
+  }
+
+  const progressFill = document.getElementById('progress-fill');
+  const progressThumb = document.getElementById('progress-thumb');
+  if (progressFill) progressFill.style.width = `${pct}%`;
+  if (progressThumb) progressThumb.style.left = `${pct}%`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Converts milliseconds to "m:ss" format.
+ * @param {number} ms
+ * @returns {string}
+ */
+export function formatTime(ms) {
+  if (!ms || isNaN(ms)) return '0:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/** Updates the play/pause button icon. */
+function setPlayButtonState(isPlaying) {
+  const btn = document.getElementById('btn-play');
+  if (!btn) return;
+  const icon = btn.querySelector('i[data-lucide]');
+  if (icon) {
+    icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+    if (window.lucide) window.lucide.createIcons();
+  }
+  btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+}
+
+/** Pauses the music bars animation. */
+function pauseMusicBars() {
+  document.querySelectorAll('.music-bars').forEach((el) => el.classList.add('paused'));
+}
+
+/** Resumes the music bars animation. */
+function resumeMusicBars() {
+  document.querySelectorAll('.music-bars').forEach((el) => el.classList.remove('paused'));
+}
+
+// Register YT callbacks
+YT.onTrackEnded(nextTrack);
+YT.onStateChange((state) => {
+  // 1 = playing, 2 = paused, 3 = buffering, 5 = cued
+  const isPlaying = state === 1 || state === 3;
+  setPlayButtonState(isPlaying);
+  if (isPlaying) resumeMusicBars(); else pauseMusicBars();
+});
+
+// Exported getters for app.js
+export function getCurrentTrack() { return currentTrack; }
+export function getQueue() { return currentQueue; }
+export function getIndex() { return currentIndex; }
+export function getRepeatMode() { return repeatMode; }
+export function getIsShuffled() { return isShuffled; }
+export function setIsDraggingProgress(val) { isDraggingProgress = val; }

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluffy Music — Stream Any Spotify Playlist for Free</title>
+    <meta name="description"
+        content="Stream any Spotify playlist, album, or song via YouTube — for free. No login, no premium required. Save your library and sync across devices.">
+    <meta name="theme-color" content="#6C63FF">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Fluffy Music — Stream Any Spotify Playlist for Free">
+    <meta property="og:description"
+        content="Stream any Spotify playlist or album via YouTube. Free. No premium needed.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fluffymusic.vercel.app">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Inline critical CSS for landing page */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            background: #0A0A0F;
+            color: #FFFFFF;
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        :root {
+            --bg-primary: #0A0A0F;
+            --bg-secondary: #111118;
+            --bg-card: #1A1A24;
+            --bg-hover: #22222E;
+            --accent-primary: #6C63FF;
+            --accent-secondary: #FF6584;
+            --accent-gradient: linear-gradient(135deg, #6C63FF, #FF6584);
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0B8;
+            --text-muted: #555568;
+            --border: #2A2A3A;
+            --success: #1DB954;
+        }
+
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Navbar */
+        .land-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .land-logo {
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-emoji {
+            font-size: 24px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(108, 99, 255, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
+        }
+
+        /* Hero */
+        .land-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 24px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: calc(100vh - 70px - 100px);
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 900px;
+            height: 500px;
+            background: radial-gradient(ellipse, rgba(108, 99, 255, 0.13) 0%, transparent 70%);
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(108, 99, 255, 0.1);
+            border: 1px solid rgba(108, 99, 255, 0.3);
+            border-radius: 999px;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-primary);
+            margin-bottom: 28px;
+        }
+
+        .land-heading {
+            font-size: 62px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+
+        .land-subheading {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 44px;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        /* Input */
+        .land-input-form {
+            width: 100%;
+            max-width: 620px;
+        }
+
+        .land-input-box {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 8px 8px 8px 20px;
+            gap: 8px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .land-input-box:focus-within {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12);
+        }
+
+        .land-input-box.valid {
+            border-color: var(--success);
+        }
+
+        .land-input-box.invalid {
+            border-color: var(--accent-secondary);
+            animation: shake 0.3s ease;
+        }
+
+        .land-input-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .land-input-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-icon {
+            color: var(--text-muted);
+        }
+
+        .land-play-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 24px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(108, 99, 255, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+        }
+
+        .land-play-btn:hover {
+            transform: scale(1.03);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
+        }
+
+        .land-note {
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .continue-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .continue-link:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        /* Features */
+        .features-section {
+            padding: 80px 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        .features-section h2 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 56px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px 24px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+        }
+
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Footer */
+        .land-footer {
+            padding: 28px 40px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-6px);
+            }
+
+            75% {
+                transform: translateX(6px);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .land-nav {
+                padding: 16px 20px;
+            }
+
+            .land-heading {
+                font-size: 36px;
+            }
+
+            .land-subheading {
+                font-size: 16px;
+            }
+
+            .land-hero {
+                padding: 60px 20px 56px;
+            }
+
+            .features-section {
+                padding: 48px 20px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Navigation ─────────────────────────────────────────────────────────── -->
+    <nav class="land-nav">
+        <div class="land-logo">
+            <span class="logo-emoji">🎵</span>
+            <span class="gradient-text">Fluffy Music</span>
+        </div>
+        <a href="/app.html" class="btn-primary" id="nav-open-app">
+            <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
+            Open App
+        </a>
+    </nav>
+
+    <!-- ── Hero ───────────────────────────────────────────────────────────────── -->
+    <main>
+        <section class="land-hero">
+            <div class="hero-glow"></div>
+
+            <div class="hero-badge">
+                <i data-lucide="zap" style="width:12px;height:12px;"></i>
+                Free · No Premium · No Login Required
+            </div>
+
+            <h1 class="land-heading">
+                Your Music.<br>
+                <span class="gradient-text">Your Way.</span>
+            </h1>
+            <p class="land-subheading">
+                Stream any Spotify playlist or album via YouTube.<br>
+                Free. No premium needed. Just paste and play.
+            </p>
+
+            <form class="land-input-form" id="hero-form" novalidate>
+                <div class="land-input-box" id="land-input-box">
+                    <i data-lucide="link-2" class="input-icon" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <input type="url" id="land-url" placeholder="Paste a Spotify playlist, album or song link…"
+                        autocomplete="off" spellcheck="false" aria-label="Spotify link">
+                    <button type="submit" class="land-play-btn" aria-label="Play Now">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                        Play Now
+                    </button>
+                </div>
+                <p class="land-note">🔒 No account needed. Just paste and play.</p>
+            </form>
+
+            <a id="continue-link" href="/app.html" class="continue-link" style="display:none;">
+                Continue to App <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+            </a>
+        </section>
+
+        <!-- ── Features ─────────────────────────────────────────────────────────── -->
+        <section class="features-section">
+            <h2>Everything You Need</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3 class="feature-title">Paste Any Link</h3>
+                    <p class="feature-desc">
+                        Any public Spotify playlist, album or song — no login, no account, no premium required.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎬</div>
+                    <h3 class="feature-title">Audio & Video Modes</h3>
+                    <p class="feature-desc">
+                        Switch between audio-only and full YouTube music video mode instantly with a single click.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">☁️</div>
+                    <h3 class="feature-title">Sync Across Devices</h3>
+                    <p class="feature-desc">
+                        Sign in with Google to save your library and access it seamlessly from any device.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+    <footer class="land-footer">
+        <p>Fluffy Music is not affiliated with Spotify or YouTube. All trademarks belong to their respective owners.</p>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Spotify URL parser (mirrors backend logic)
+        function parseSpotifyLink(url) {
+            if (!url) return null;
+            const clean = url.split('?')[0].trim();
+            const httpMatch = clean.match(/open\.spotify\.com\/(playlist|album|track)\/([A-Za-z0-9]+)/);
+            if (httpMatch) return { type: httpMatch[1], id: httpMatch[2] };
+            const uriMatch = clean.match(/^spotify:(playlist|album|track):([A-Za-z0-9]+)$/);
+            if (uriMatch) return { type: uriMatch[1], id: uriMatch[2] };
+            return null;
+        }
+
+        // Show "Continue to App" if user has history
+        const hasSaved = localStorage.getItem('fm_saved_links');
+        const hasUid = localStorage.getItem('fm_user_uid');
+        if (hasSaved || hasUid) {
+            document.getElementById('continue-link').style.display = 'inline-flex';
+        }
+
+        // Validate on input
+        const urlInput = document.getElementById('land-url');
+        const inputBox = document.getElementById('land-input-box');
+
+        urlInput.addEventListener('input', () => {
+            const val = urlInput.value.trim();
+            if (!val) { inputBox.classList.remove('valid', 'invalid'); return; }
+            const valid = !!parseSpotifyLink(val);
+            inputBox.classList.toggle('valid', valid);
+            inputBox.classList.toggle('invalid', !valid);
+        });
+
+        urlInput.addEventListener('paste', () => {
+            setTimeout(() => {
+                const val = urlInput.value.trim();
+                if (val && parseSpotifyLink(val)) {
+                    // Auto-redirect after a brief moment for good UX
+                    setTimeout(() => {
+                        window.location.href = `/app.html?url=${encodeURIComponent(val)}`;
+                    }, 300);
+                }
+            }, 50);
+        });
+
+        // Form submit
+        document.getElementById('hero-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = urlInput.value.trim();
+            if (!val) return;
+            const parsed = parseSpotifyLink(val);
+            if (parsed) {
+                window.location.href = `/app.html?url=${encodeURIComponent(val)}`;
+            } else {
+                inputBox.classList.add('invalid');
+                setTimeout(() => inputBox.classList.remove('invalid'), 2000);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

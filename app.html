@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluffy Music</title>
+    <meta name="description" content="Stream any Spotify playlist, album, or song via YouTube. Free music player.">
+    <meta name="theme-color" content="#6C63FF">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="/src/css/style.css">
+</head>
+
+<body>
+
+    <div id="app-shell">
+
+        <!-- ── Top Navbar ──────────────────────────────────────────────────────── -->
+        <nav id="top-nav" aria-label="Main navigation">
+            <button id="hamburger" aria-label="Toggle sidebar" aria-expanded="false">
+                <i data-lucide="menu" style="width:22px;height:22px;"></i>
+            </button>
+
+            <a href="/" class="nav-logo" aria-label="Fluffy Music home">
+                <span>🎵</span>
+                <span class="nav-logo-text">Fluffy Music</span>
+            </a>
+
+            <div class="nav-search-wrap">
+                <i data-lucide="search" class="nav-search-icon" style="width:16px;height:16px;"></i>
+                <input type="search" id="top-search" placeholder="Search any song or paste a Spotify link…"
+                    autocomplete="off" spellcheck="false" aria-label="Search songs or paste Spotify link">
+            </div>
+
+            <div class="nav-actions">
+                <!-- Not logged in -->
+                <button id="login-btn" class="btn btn-primary btn-icon" aria-label="Sign in with Google">
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Sign in with Google
+                </button>
+
+                <!-- Logged in (hidden by default) -->
+                <div id="user-menu" class="hidden" role="group" aria-label="User account">
+                    <img id="user-avatar" src="" alt="User avatar" width="32" height="32">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" aria-label="Sign out" title="Sign out">
+                        <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ── Body Wrap ───────────────────────────────────────────────────────── -->
+        <div id="body-wrap">
+
+            <!-- ── Left Sidebar ──────────────────────────────────────────────────── -->
+            <aside id="sidebar" aria-label="Library sidebar">
+
+                <div class="sidebar-section">
+                    <p class="sidebar-section-title">Your Library</p>
+                    <div id="saved-links-list" role="list" aria-label="Saved playlists and albums">
+                        <!-- Populated by renderSavedLinks() -->
+                    </div>
+                </div>
+
+                <!-- Sidebar footer: login prompt or user info -->
+                <div style="margin-top:auto;">
+                    <!-- Login card (for unauthenticated users) -->
+                    <div id="sidebar-login-card">
+                        <i data-lucide="cloud"
+                            style="width:28px;height:28px;color:var(--text-muted);margin:0 auto 10px;display:block;"></i>
+                        <p>Sign in to sync your library across all your devices.</p>
+                        <button id="sidebar-login-btn" class="btn btn-primary"
+                            style="width:100%;justify-content:center;">
+                            Sign in with Google
+                        </button>
+                    </div>
+
+                    <!-- User info (for authenticated users, hidden by default) -->
+                    <div id="sidebar-user-info" class="hidden">
+                        <img id="sidebar-user-avatar" src="" alt="" width="32" height="32">
+                        <div class="sidebar-user-details">
+                            <span class="name" id="sidebar-user-name">User</span>
+                            <span class="synced">☁ Library synced</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Mobile sidebar overlay -->
+            <div id="sidebar-overlay" aria-hidden="true"></div>
+
+            <!-- ── Main Content ───────────────────────────────────────────────────── -->
+            <main id="main-content" role="main" aria-label="Music content">
+                <!-- Populated by renderHomeView() / renderPlaylistHero() / renderTrackList() -->
+            </main>
+
+        </div><!-- /body-wrap -->
+
+        <!-- ── Video Panel (above player bar, hidden by default) ────────────────── -->
+        <div id="video-panel" class="hidden" role="dialog" aria-label="Music video player">
+            <button id="video-close-btn" aria-label="Close video">✕</button>
+            <div id="video-player-slot"></div>
+        </div>
+
+        <!-- ── Hidden YouTube Player ─────────────────────────────────────────────── -->
+        <div id="yt-hidden-slot" aria-hidden="true">
+            <div id="yt-player-container"></div>
+        </div>
+
+        <!-- ── Player Bar ────────────────────────────────────────────────────────── -->
+        <footer id="player-bar" class="hidden" role="region" aria-label="Music player controls">
+
+            <!-- Left: track info -->
+            <div class="player-track-info">
+                <img id="player-art" src="" alt="Album art" width="48" height="48">
+                <div class="player-text">
+                    <span id="player-track-name">–</span>
+                    <span id="player-track-artist">–</span>
+                </div>
+            </div>
+
+            <!-- Center: controls + progress -->
+            <div class="player-center">
+                <div class="player-controls" role="group" aria-label="Playback controls">
+                    <button id="btn-shuffle" class="ctrl-btn" aria-label="Shuffle" title="Shuffle: Off">
+                        <i data-lucide="shuffle" style="width:18px;height:18px;"></i>
+                    </button>
+                    <button id="btn-prev" class="ctrl-btn" aria-label="Previous track">
+                        <i data-lucide="skip-back" style="width:20px;height:20px;"></i>
+                    </button>
+                    <button id="btn-play" aria-label="Play" role="switch" aria-checked="false">
+                        <i data-lucide="play" style="width:20px;height:20px;"></i>
+                    </button>
+                    <button id="btn-next" class="ctrl-btn" aria-label="Next track">
+                        <i data-lucide="skip-forward" style="width:20px;height:20px;"></i>
+                    </button>
+                    <button id="btn-repeat" class="ctrl-btn" data-mode="none" aria-label="Repeat" title="Repeat: none">
+                        <i data-lucide="repeat" style="width:18px;height:18px;"></i>
+                    </button>
+                </div>
+
+                <div class="player-progress-wrap" role="group" aria-label="Seek bar">
+                    <span class="time-display" id="time-current" aria-label="Current time">0:00</span>
+                    <div id="progress-bar" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0">
+                        <div id="progress-fill"></div>
+                        <div id="progress-thumb"></div>
+                    </div>
+                    <span class="time-display" id="time-total" aria-label="Total duration">0:00</span>
+                </div>
+            </div>
+
+            <!-- Right: mode toggle + volume -->
+            <div class="player-right">
+                <div class="mode-toggle" role="group" aria-label="Playback mode">
+                    <div id="mode-slider" aria-hidden="true"></div>
+                    <button id="mode-audio" class="mode-btn active" aria-label="Audio mode" aria-pressed="true">
+                        🎵 Audio
+                    </button>
+                    <button id="mode-video" class="mode-btn" aria-label="Video mode" aria-pressed="false">
+                        🎬 Video
+                    </button>
+                </div>
+
+                <div class="volume-wrap" aria-label="Volume control">
+                    <i data-lucide="volume-2" class="volume-icon" style="width:16px;height:16px;"></i>
+                    <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Volume">
+                </div>
+            </div>
+
+        </footer><!-- /player-bar -->
+
+    </div><!-- /app-shell -->
+
+    <!-- Toast container (appended by JS, but pre-placing it helps) -->
+    <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- ── Firebase SDK (ESM, loaded as module) ────────────────────────────────── -->
+    <!-- app.js imports firebase.js which imports from Firebase CDN -->
+    <script type="module" src="/src/js/app.js"></script>
+
+    <!-- ── Initialize Lucide Icons (after DOM ready) ─────────────────────────── -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+
+</body>
+
+</html>

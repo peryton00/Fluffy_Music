@@ -1,0 +1,13 @@
+{
+  "name": "fluffy-music",
+  "version": "1.0.0",
+  "description": "Fluffy Music — Stream Spotify playlists via YouTube",
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {}
+}
