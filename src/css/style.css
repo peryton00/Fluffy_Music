@@ -445,10 +445,12 @@ ul {
   background: rgba(0, 0, 0, 0.6);
   z-index: 200;
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--transition-med);
 }
 #sidebar-overlay.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* ── Main Content ───────────────────────────────────────────────────────────── */
