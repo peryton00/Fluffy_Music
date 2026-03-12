@@ -212,28 +212,28 @@ async function searchYouTube(query) {
     const res = await fetch(`/api/search-youtube?q=${encodeURIComponent(query)}&mode=audio`);
     const data = await res.json();
 
-    if (!res.ok || data.error) {
+    if (!res.ok || data.error || !data.tracks || data.tracks.length === 0) {
       showToast(data.message === 'youtube_quota_exceeded'
         ? 'YouTube search limit reached. Try again tomorrow.'
         : 'No results found.', 'error');
       return;
     }
 
-    // Play directly
-    const syntheticTrack = {
-      id: data.videoId,
-      name: data.title,
-      artist: data.channelName,
-      artists: data.channelName,
-      album: '',
-      albumArt: data.thumbnail || '',
+    // Convert the returned tracks into the app's internal track format
+    const syntheticQueue = data.tracks.map(t => ({
+      id: t.videoId,
+      name: t.title,
+      artist: t.channelName,
+      artists: t.channelName,
+      album: 'YouTube Radio',
+      albumArt: t.thumbnail || '',
       duration: 0,
-      spotifyId: data.videoId,
-    };
+      spotifyId: t.videoId,
+    }));
 
-    const { loadVideo } = await import('./youtube.js');
-    loadVideo(data.videoId);
-    if (window.updatePlayerBar) window.updatePlayerBar(syntheticTrack);
+    // Pass the entire queue to the player, starting at index 0
+    loadTrack(syntheticQueue[0], syntheticQueue, 0);
+
   } catch (err) {
     showToast('Search failed. Please try again.', 'error');
   }

@@ -45,7 +45,11 @@ export async function loadTrack(track, queue = [], index = 0) {
   }
 
   // Tell YouTube to search and play
-  await YT.searchAndPlay(track.name, track.artist);
+  if (track.album === 'YouTube Radio') {
+    YT.loadVideo(track.id);
+  } else {
+    await YT.searchAndPlay(track.name, track.artist);
+  }
 
   // Start progress updates
   startProgressInterval();

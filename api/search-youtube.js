@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
     q: searchQuery,
     type: 'video',
     videoCategoryId: '10', // Music
-    maxResults: '5',
+    maxResults: '15',
     key: apiKey,
   });
 
@@ -73,26 +73,31 @@ module.exports = async function handler(req, res) {
       (item) => item.id && item.id.videoId && !isUnwantedResult(item.snippet.title)
     );
 
-    // Fallback to the first result if all are filtered
-    const best = filtered.length > 0 ? filtered[0] : items.find((i) => i.id && i.id.videoId);
+    // If filtering removes everything, use the raw items as fallback
+    const finalItems = filtered.length > 0 ? filtered : items.filter((i) => i.id && i.id.videoId);
 
-    if (!best) {
+    if (finalItems.length === 0) {
       return errorResponse(res, 404, 'no_results');
     }
 
-    const { videoId } = best.id;
-    const { title, thumbnails, channelTitle } = best.snippet;
-    const thumbnail =
-      (thumbnails.medium && thumbnails.medium.url) ||
-      (thumbnails.default && thumbnails.default.url) ||
-      '';
+    // Format all tracks
+    const tracks = finalItems.map(item => {
+      const { videoId } = item.id;
+      const { title, thumbnails, channelTitle } = item.snippet;
+      const thumbnail =
+        (thumbnails.medium && thumbnails.medium.url) ||
+        (thumbnails.default && thumbnails.default.url) ||
+        '';
 
-    return successResponse(res, {
-      videoId,
-      title,
-      thumbnail,
-      channelName: channelTitle,
+      return {
+        videoId,
+        title,
+        thumbnail,
+        channelName: channelTitle,
+      };
     });
+
+    return successResponse(res, { tracks });
   } catch (err) {
     console.error('search-youtube handler error:', err.message);
     return errorResponse(res, 500, 'youtube_search_exception');
