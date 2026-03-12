@@ -158,11 +158,10 @@ export function toggleRepeat() {
     repeatBtn.classList.toggle('active', repeatMode !== 'none');
     repeatBtn.setAttribute('data-mode', repeatMode);
 
-    const icon = repeatBtn.querySelector('i[data-lucide]');
-    if (icon) {
-      icon.setAttribute('data-lucide', repeatMode === 'one' ? 'repeat-1' : 'repeat');
-      if (window.lucide) window.lucide.createIcons();
-    }
+    const iconName = repeatMode === 'one' ? 'repeat-1' : 'repeat';
+    repeatBtn.innerHTML = `<i data-lucide="${iconName}" style="width:18px;height:18px;"></i>`;
+    if (window.lucide) window.lucide.createIcons();
+
     repeatBtn.setAttribute('title', `Repeat: ${repeatMode}`);
   }
 }
@@ -235,11 +234,9 @@ export function formatTime(ms) {
 function setPlayButtonState(isPlaying) {
   const btn = document.getElementById('btn-play');
   if (!btn) return;
-  const icon = btn.querySelector('i[data-lucide]');
-  if (icon) {
-    icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
-    if (window.lucide) window.lucide.createIcons();
-  }
+  const iconName = isPlaying ? 'pause' : 'play';
+  btn.innerHTML = `<i data-lucide="${iconName}" style="width:20px;height:20px;"></i>`;
+  if (window.lucide) window.lucide.createIcons();
   btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
 }
 
