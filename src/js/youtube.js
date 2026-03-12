@@ -53,7 +53,6 @@ function onYouTubeIframeAPIReady() {
       fs: 0,
       origin: window.location.origin,
     },
-    host: 'https://www.youtube-nocookie.com',
     events: {
       onReady: () => {
         playerReady = true;

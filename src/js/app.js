@@ -208,9 +208,8 @@ async function saveCurrentToLibrary(url, type, data) {
 // ── YouTube Direct Search ─────────────────────────────────────────────────────
 
 async function searchYouTube(query) {
-  const mode = getMode();
   try {
-    const res = await fetch(`/api/search-youtube?q=${encodeURIComponent(query)}&mode=${mode}`);
+    const res = await fetch(`/api/search-youtube?q=${encodeURIComponent(query)}&mode=audio`);
     const data = await res.json();
 
     if (!res.ok || data.error) {
