@@ -212,7 +212,7 @@ async function searchYouTube(query) {
     const encoded = encodeURIComponent(query);
     // Try Piped first, fall back to YouTube
     let data = null;
-    res = await fetch(
+    let res = await fetch(
       `/api/search-youtube?q=${encoded}&source=piped`
     );
     if (res.ok) data = await res.json();
