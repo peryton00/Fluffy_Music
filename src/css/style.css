@@ -1627,11 +1627,17 @@ ul {
   }
   /* Hide mode toggle and volume on mobile */
   .mode-toggle,
-  .volume-wrap {
+  .volume-wrap,
+  #login-btn span {
     display: none !important;
   }
   .player-right {
     display: none;
+  }
+  .sidebar-remove-btn {
+    opacity: 1 !important;
+    width: 24px;
+    height: 24px;
   }
   /* Compact controls */
   .player-controls {
