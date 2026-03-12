@@ -247,19 +247,7 @@ function attachEventListeners() {
   // ── Search Bar (top navbar) ──
   const searchInput = document.getElementById('top-search');
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounceTimer);
-      const val = searchInput.value.trim();
-      if (!val) return;
-
-      searchDebounceTimer = setTimeout(() => {
-        if (parseSpotifyLink(val)) {
-          handleSpotifyLink(val);
-        } else {
-          searchYouTube(val);
-        }
-      }, 400);
-    });
+    // Only search on Enter to save server load and API quota
 
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
