@@ -123,6 +123,11 @@ function onYouTubeIframeAPIReady() {
  * @param {boolean} fallbackNoArtist - internal flag to retry without artist
  */
 export async function searchAndPlay(trackName, artist) {
+  if (quotaExceeded) {
+    if (window.showToast) window.showToast('YouTube search limit reached. Try again tomorrow.', 'error');
+    return;
+  }
+
   // Step 1: Check client-side cache first
   const cached = getFromCache(trackName, artist);
   if (cached) {
@@ -214,6 +219,7 @@ async function fetchTop15Results(query) {
       `/api/search-youtube?q=${encoded}&source=youtube`
     );
     if (res.status === 429) {
+      quotaExceeded = true;
       if (window.showToast) {
         window.showToast(
           'YouTube search limit reached. Try again tomorrow.',
