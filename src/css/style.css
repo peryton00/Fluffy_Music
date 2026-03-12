@@ -933,7 +933,7 @@ ul {
 
 /* ── Bottom Player Bar ───────────────────────────────────────────────────────── */
 #player-bar {
-  height: var(--player-h);
+  /* height: var(--player-h); */
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   display: grid;
@@ -943,6 +943,12 @@ ul {
   z-index: 100;
   flex-shrink: 0;
   gap: 16px;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  width: 100%;
+  padding-top: 10px;
 }
 
 /* Left: track info */
@@ -1521,6 +1527,9 @@ ul {
       display: none;
     }
   }
+  .hero-meta {
+    justify-content: center;
+  }
   .btn {
     gap: 4px;
     padding: 6px 12px;
@@ -1631,11 +1640,15 @@ ul {
   .hero-desc {
     font-size: 12px;
   }
+  .track-duration {
+    font-size: 11px;
+    padding-right: 8px;
+  }
 
   /* Track list: compact 4-col */
   .track-row {
     grid-template-columns: 28px 36px 1fr 44px;
-    padding: 6px 8px;
+    padding: 6px 0px;
     gap: 8px;
   }
   .track-album {
