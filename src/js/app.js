@@ -212,21 +212,40 @@ async function searchYouTube(query) {
     const encoded = encodeURIComponent(query);
     // Try Piped first, fall back to YouTube
     let data = null;
-    let res = await fetch(
+    res = await fetch(
       `/api/search-youtube?q=${encoded}&source=piped`
     );
     if (res.ok) data = await res.json();
 
-    if (!data || data.error ||
-        !data.results?.length) {
-      res = await fetch(
-        `/api/search-youtube?q=${encoded}&source=youtube`
-      );
+    // Fallback order: Invidious -> YouTube API (if not blocked) -> ytSearch (scraper)
+    if (!data || data.error || !data.results?.length) {
+      res = await fetch(`/api/search-youtube?q=${encoded}&source=invidious`);
       if (res.ok) data = await res.json();
     }
 
-    if (!data || data.error ||
-        !data.results?.length) {
+    // Try YouTube API only if not persistently blocked today
+    const quotaExpiry = localStorage.getItem('fm_yt_quota_expiry');
+    const isBlocked = quotaExpiry && Date.now() < parseInt(quotaExpiry);
+
+    if (!isBlocked && (!data || data.error || !data.results?.length)) {
+      res = await fetch(`/api/search-youtube?q=${encoded}&source=youtube`);
+      if (res.ok) {
+        data = await res.json();
+      } else if (res.status === 429) {
+        // Mark as blocked for today
+        const midnight = new Date();
+        midnight.setHours(24, 0, 0, 0);
+        localStorage.setItem('fm_yt_quota_expiry', midnight.getTime().toString());
+      }
+    }
+
+    // Final free fallback: Scraper
+    if (!data || data.error || !data.results?.length) {
+      res = await fetch(`/api/search-youtube?q=${encoded}&source=ytsearch`);
+      if (res.ok) data = await res.json();
+    }
+
+    if (!data || data.error || !data.results?.length) {
       showToast('No results found.', 'error');
       return;
     }

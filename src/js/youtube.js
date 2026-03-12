@@ -16,6 +16,29 @@ let resultQueue = [];
 let currentResultIndex = 0;
 let currentSearchQuery = '';
 
+function isQuotaExceeded() {
+  if (quotaExceeded) return true;
+  const expiry = localStorage.getItem('fm_yt_quota_expiry');
+  if (expiry) {
+    if (Date.now() < parseInt(expiry)) {
+      quotaExceeded = true;
+      return true;
+    } else {
+      localStorage.removeItem('fm_yt_quota_expiry');
+    }
+  }
+  return false;
+}
+
+function setQuotaExceeded() {
+  quotaExceeded = true;
+  // Set expiry to midnight
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  localStorage.setItem('fm_yt_quota_expiry', midnight.getTime().toString());
+}
+
+
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
   'https://piped-api.garudalinux.org',
@@ -123,11 +146,6 @@ function onYouTubeIframeAPIReady() {
  * @param {boolean} fallbackNoArtist - internal flag to retry without artist
  */
 export async function searchAndPlay(trackName, artist) {
-  if (quotaExceeded) {
-    if (window.showToast) window.showToast('YouTube search limit reached. Try again tomorrow.', 'error');
-    return;
-  }
-
   // Step 1: Check client-side cache first
   const cached = getFromCache(trackName, artist);
   if (cached) {
@@ -213,21 +231,31 @@ async function fetchTop15Results(query) {
     console.warn('Invidious search failed:', e.message);
   }
 
-  // Fall back to YouTube Data API v3
+  // Fall back to YouTube Data API v3 if not already exceeded
+  if (!isQuotaExceeded()) {
+    try {
+      const res = await fetch(
+        `/api/search-youtube?q=${encoded}&source=youtube`
+      );
+      if (res.status === 429) {
+        setQuotaExceeded();
+        // Silent transition - don't show toast, try ytsearch next
+      } else if (res.ok) {
+        const data = await res.json();
+        if (!data.error && data.results?.length > 0) {
+          return data.results;
+        }
+      }
+    } catch (e) {
+      console.warn('YouTube API search failed:', e.message);
+    }
+  }
+
+  // Final silent fallback: Free scraper (yt-search)
   try {
     const res = await fetch(
-      `/api/search-youtube?q=${encoded}&source=youtube`
+      `/api/search-youtube?q=${encoded}&source=ytsearch`
     );
-    if (res.status === 429) {
-      quotaExceeded = true;
-      if (window.showToast) {
-        window.showToast(
-          'YouTube search limit reached. Try again tomorrow.',
-          'error'
-        );
-      }
-      return [];
-    }
     if (res.ok) {
       const data = await res.json();
       if (!data.error && data.results?.length > 0) {
@@ -235,7 +263,7 @@ async function fetchTop15Results(query) {
       }
     }
   } catch (e) {
-    console.warn('YouTube API search failed:', e.message);
+    console.error('Final search fallback failed:', e.message);
   }
 
   return [];

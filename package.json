@@ -8,5 +8,7 @@
   "scripts": {
     "deploy": "vercel --prod"
   },
-  "dependencies": {}
+  "dependencies": {
+    "yt-search": "^2.12.1"
+  }
 }

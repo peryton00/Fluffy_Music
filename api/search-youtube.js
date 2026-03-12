@@ -1,4 +1,5 @@
 const { handleOptions, errorResponse, successResponse } = require('./_helpers');
+const ytSearch = require('yt-search');
 
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
@@ -104,6 +105,20 @@ async function fetchFromYouTube(query) {
   return normalized;
 }
 
+async function fetchFromYtSearch(query) {
+  const r = await ytSearch(query);
+  const videos = r.videos || [];
+  if (videos.length === 0) throw new Error('no_results');
+
+  return videos.slice(0, 15).map(v => ({
+    videoId: v.videoId,
+    title: v.title,
+    channelName: v.author.name,
+    thumbnail: v.thumbnail,
+    duration: v.seconds || 0
+  }));
+}
+
 module.exports = async function handler(req, res) {
   if (handleOptions(req, res)) return;
 
@@ -150,6 +165,15 @@ module.exports = async function handler(req, res) {
         return errorResponse(res, 429, 'youtube_quota_exceeded');
       }
       return errorResponse(res, 503, 'youtube_unavailable');
+    }
+  }
+
+  if (source === 'ytsearch') {
+    try {
+      const results = await fetchFromYtSearch(query);
+      return successResponse(res, { results, source: 'ytsearch' });
+    } catch (err) {
+      return errorResponse(res, 503, 'ytsearch_unavailable');
     }
   }
 
