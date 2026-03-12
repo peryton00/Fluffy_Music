@@ -64,7 +64,7 @@ function normalizeTrack(trackObj, albumOverride = null) {
  * Fetch a single page of Spotify playlist tracks.
  */
 async function fetchPlaylistTracksPage(playlistId, token, offset, limit) {
-  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,album,duration_ms)),total,next`;
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,album(id,name,images),duration_ms)),total,next`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
