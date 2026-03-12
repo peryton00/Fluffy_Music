@@ -4,9 +4,11 @@ Get your own instance of Fluffy Music running in under 20 minutes.
 
 ---
 
-## 1. Spotify Developer App
+## 1. Spotify Developer App (OPTIONAL)
 
-You need a Spotify Developer app to fetch playlist and album metadata.
+Fluffy Music now uses native scraping for public Spotify links, so **you do not strictly need a Spotify Developer API key** to use the app! You can skip this step entirely.
+
+However, if you want the app to be more resilient and use the official API, you can set it up:
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
 2. Click **Create App**
@@ -17,6 +19,8 @@ You need a Spotify Developer app to fetch playlist and album metadata.
    - **APIs used**: Check **Web API**
 4. Open your new app → **Settings**
 5. Copy your **Client ID** and **Client Secret**
+
+> **Note:** Due to recent Spotify policy changes, the official API now requires the app owner to have an **Active Premium Subscription**. If you don't have one, just skip this section and leave the Spotify variables empty in your `.env` file!
 
 ---
 

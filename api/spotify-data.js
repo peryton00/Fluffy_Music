@@ -90,6 +90,109 @@ async function fetchAlbumTracksPage(albumId, token, offset, limit) {
   return res.json();
 }
 
+/**
+ * Native scraping fallback using the public Spotify Embed Widget.
+ * Bypasses the need for any API keys or Premium accounts.
+ */
+async function fetchSpotifyScrape(type, id, offset, limit) {
+  const url = `https://open.spotify.com/embed/${type}/${id}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' }
+  });
+  
+  if (!res.ok) {
+    throw new Error('scrape_failed');
+  }
+
+  const html = await res.text();
+  const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+  
+  if (!match) {
+    throw new Error('scrape_parse_failed');
+  }
+
+  const data = JSON.parse(match[1]);
+  const entity = data.props?.pageProps?.state?.data?.entity;
+  
+  if (!entity) {
+    throw new Error('scrape_no_entity');
+  }
+
+  const coverArt = entity.coverArt?.sources?.[0]?.url || 
+                   data.props?.pageProps?.state?.data?.visualIdentity?.image?.[0]?.url || '';
+
+  if (type === 'track') {
+    const artist = entity.artists && entity.artists.length > 0 ? entity.artists[0].name : 'Unknown Artist';
+    const artists = entity.artists ? entity.artists.map(a => a.name).join(', ') : artist;
+    const album = entity.album ? entity.album.name : '';
+
+    const normalized = {
+      id: entity.id,
+      name: entity.title || entity.name,
+      artist,
+      artists,
+      album,
+      albumArt: coverArt,
+      duration: entity.duration || 0,
+      spotifyId: entity.id,
+    };
+
+    return {
+      type,
+      id,
+      name: normalized.name,
+      description: `By ${normalized.artists}`,
+      coverArt,
+      totalTracks: 1,
+      tracks: [normalized],
+      hasMore: false,
+      nextOffset: 0,
+    };
+  }
+
+  // Playlist or Album
+  const trackList = entity.trackList || [];
+  const totalTracks = trackList.length;
+  
+  // Embed only gives up to 100 tracks usually, we paginate from what we have
+  const pageTracks = trackList.slice(offset, offset + limit);
+  
+  const normalizedTracks = pageTracks.map(t => {
+    // subtitle often contains artists, but could contain more. We'll use subtitle.
+    const artists = t.subtitle || 'Unknown Artist';
+    const artist = artists.split(',')[0];
+    
+    return {
+      id: t.uid || t.uri?.split(':').pop() || t.id,
+      name: t.title,
+      artist,
+      artists,
+      album: type === 'album' ? (entity.name || entity.title) : '',
+      albumArt: t.coverArt?.sources?.[0]?.url || coverArt,
+      duration: t.duration || 0,
+      spotifyId: t.uri?.split(':').pop() || t.id,
+    };
+  });
+
+  const nextOffset = offset + normalizedTracks.length;
+  const hasMore = nextOffset < totalTracks;
+  const description = type === 'album' 
+    ? `By ${entity.subtitle || ''}` 
+    : (entity.description || entity.subtitle || '');
+
+  return {
+    type,
+    id,
+    name: entity.title || entity.name || 'Unnamed',
+    description,
+    coverArt,
+    totalTracks,
+    tracks: normalizedTracks,
+    hasMore,
+    nextOffset,
+  };
+}
+
 module.exports = async function handler(req, res) {
   // Handle CORS preflight
   if (handleOptions(req, res)) return;
@@ -107,22 +210,26 @@ module.exports = async function handler(req, res) {
     return errorResponse(res, 400, 'invalid_id');
   }
 
-  let token;
+  let token = null;
   try {
     token = await getSpotifyToken();
   } catch (err) {
-    return errorResponse(res, 500, err.message || 'token_failed');
+    // If getting token fails (e.g. missing credentials), we will just proceed without token to fallback
   }
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   try {
+    if (!token) {
+      throw new Error('no_token');
+    }
+
+    const headers = { Authorization: `Bearer ${token}` };
+
     if (type === 'track') {
       // --- Single Track ---
       const trackRes = await fetch(`https://api.spotify.com/v1/tracks/${id}`, { headers });
       if (!trackRes.ok) {
         if (trackRes.status === 404) return errorResponse(res, 404, 'not_found_or_private');
-        return errorResponse(res, trackRes.status, 'track_fetch_failed');
+        throw new Error('track_fetch_failed');
       }
       const trackData = await trackRes.json();
       const normalized = normalizeTrack(trackData);
@@ -150,7 +257,7 @@ module.exports = async function handler(req, res) {
       );
       if (!metaRes.ok) {
         if (metaRes.status === 404) return errorResponse(res, 404, 'not_found_or_private');
-        return errorResponse(res, metaRes.status, 'playlist_meta_failed');
+        throw new Error('playlist_meta_failed');
       }
       const meta = await metaRes.json();
 
@@ -187,7 +294,7 @@ module.exports = async function handler(req, res) {
       const metaRes = await fetch(`https://api.spotify.com/v1/albums/${id}`, { headers });
       if (!metaRes.ok) {
         if (metaRes.status === 404) return errorResponse(res, 404, 'not_found_or_private');
-        return errorResponse(res, metaRes.status, 'album_meta_failed');
+        throw new Error('album_meta_failed');
       }
       const meta = await metaRes.json();
 
@@ -247,10 +354,17 @@ module.exports = async function handler(req, res) {
       }
     }
   } catch (err) {
-    if (err.status === 404) {
+    if (err.message === 'not_found_or_private') {
       return errorResponse(res, 404, 'not_found_or_private');
     }
-    console.error('spotify-data handler error:', err.message);
-    return errorResponse(res, 500, 'fetch_failed');
+    console.warn(`Standard API failed (${err.message}). Falling back to Embedded API...`);
+    
+    try {
+      const scrapedData = await fetchSpotifyScrape(type, id, offset, limit);
+      return successResponse(res, scrapedData);
+    } catch (scrapeErr) {
+      console.error('Scrape fallback error:', scrapeErr.message);
+      return errorResponse(res, 500, 'fetch_failed_completely');
+    }
   }
 };
