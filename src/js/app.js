@@ -331,6 +331,11 @@ function attachEventListeners() {
     }
   });
 
+  // ── Auth Buttons ──
+  document.getElementById('login-btn')?.addEventListener('click', loginWithGoogle);
+  document.getElementById('sidebar-login-btn')?.addEventListener('click', loginWithGoogle);
+  document.getElementById('logout-btn')?.addEventListener('click', logout);
+
   // ── Player Controls ──
   document.getElementById('btn-play')?.addEventListener('click', playPause);
   document.getElementById('btn-next')?.addEventListener('click', nextTrack);
