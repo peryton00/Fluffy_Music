@@ -114,11 +114,6 @@
 
         </div><!-- /body-wrap -->
 
-        <!-- ── Video Panel (above player bar, hidden by default) ────────────────── -->
-        <div id="video-panel" class="hidden" role="dialog" aria-label="Music video player">
-            <button id="video-close-btn" aria-label="Close video">✕</button>
-            <div id="video-player-slot"></div>
-        </div>
 
         <!-- ── Hidden YouTube Player ─────────────────────────────────────────────── -->
         <div id="yt-hidden-slot" aria-hidden="true">
@@ -170,16 +165,6 @@
 
             <!-- Right: mode toggle + volume -->
             <div class="player-right">
-                <div class="mode-toggle" role="group" aria-label="Playback mode">
-                    <div id="mode-slider" aria-hidden="true"></div>
-                    <button id="mode-audio" class="mode-btn active" aria-label="Audio mode" aria-pressed="true">
-                        🎵 Audio
-                    </button>
-                    <button id="mode-video" class="mode-btn" aria-label="Video mode" aria-pressed="false">
-                        🎬 Video
-                    </button>
-                </div>
-
                 <div class="volume-wrap" aria-label="Volume control">
                     <i data-lucide="volume-2" class="volume-icon" style="width:16px;height:16px;"></i>
                     <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Volume">

@@ -4,7 +4,7 @@
 import { initAuth, loginWithGoogle, logout, isLoggedIn, getCurrentUser } from './auth.js';
 import { loadUserLibrary, saveLink, removeLink, isLinkSaved, getLocalLibrary } from './sync.js';
 import { parseSpotifyLink, fetchSpotifyData, fetchAllTracks } from './spotify.js';
-import { initYouTubeAPI, toggleMode, setVolume, getMode } from './youtube.js';
+import { initYouTubeAPI, setVolume } from './youtube.js';
 import {
   loadTrack, playPause, nextTrack, prevTrack,
   toggleShuffle, toggleRepeat, seekToPercent, setIsDraggingProgress
@@ -50,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 5. Restore volume
   setVolume(FM.getVolume());
 
-  // 6. Restore mode toggle UI
-  initModeToggle();
+
 
   // 7. Attach all event listeners
   attachEventListeners();
@@ -340,51 +339,87 @@ function attachEventListeners() {
     });
   }
 
-  // ── Mode Toggle ──
-  document.getElementById('mode-audio')?.addEventListener('click', () => toggleMode('audio'));
-  document.getElementById('mode-video')?.addEventListener('click', () => toggleMode('video'));
-
-  // ── Auth ──
-  document.getElementById('login-btn')?.addEventListener('click', loginWithGoogle);
-  document.getElementById('logout-btn')?.addEventListener('click', logout);
-  document.getElementById('sidebar-login-btn')?.addEventListener('click', loginWithGoogle);
-
-  // ── Mobile Sidebar Toggle ──
-  const hamburger = document.getElementById('hamburger');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-  hamburger?.addEventListener('click', () => {
-    sidebar?.classList.toggle('open');
-    sidebarOverlay?.classList.toggle('visible');
-  });
-  sidebarOverlay?.addEventListener('click', () => {
-    sidebar?.classList.remove('open');
-    sidebarOverlay?.classList.remove('visible');
-  });
-
-  // ── Video Panel Close ──
-  document.getElementById('video-close-btn')?.addEventListener('click', () => {
-    toggleMode('audio');
-    const audioBtn = document.getElementById('mode-audio');
-    const videoBtn = document.getElementById('mode-video');
-    if (audioBtn) audioBtn.classList.add('active');
-    if (videoBtn) videoBtn.classList.remove('active');
-  });
+  // ── Keyboard Shortcuts ──
+  document.addEventListener('keydown', handleGlobalKeyboardShortcuts);
 }
 
-// ── Mode Toggle Init ──────────────────────────────────────────────────────────
+// ── Keyboard Shortcuts Handling ────────────────────────────────────────────────
 
-function initModeToggle() {
-  const savedMode = FM.getMode();
-  const audioBtn = document.getElementById('mode-audio');
-  const videoBtn = document.getElementById('mode-video');
-  const slider = document.getElementById('mode-slider');
+function handleGlobalKeyboardShortcuts(e) {
+  // Ignore if user is typing in an input field
+  const targetTag = e.target.tagName?.toLowerCase();
+  if (targetTag === 'input' || targetTag === 'textarea' || e.target.isContentEditable) return;
 
-  if (audioBtn) audioBtn.classList.toggle('active', savedMode === 'audio');
-  if (videoBtn) videoBtn.classList.toggle('active', savedMode === 'video');
-  if (slider) slider.style.transform = savedMode === 'video' ? 'translateX(100%)' : 'translateX(0)';
+  // Spacebar: Play/Pause
+  if (e.key === ' ' || e.code === 'Space') {
+    e.preventDefault(); // prevent page scroll
+    playPause();
+  }
+
+  // Right Arrow: Forward 10s
+  else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    import('./youtube.js').then((YT) => {
+       const cur = YT.getCurrentTime();
+       const dur = YT.getDuration();
+       if (dur > 0) YT.seekTo(Math.min(dur, cur + 10));
+    });
+  }
+
+  // Left Arrow: Backward 10s
+  else if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    import('./youtube.js').then((YT) => {
+       const cur = YT.getCurrentTime();
+       YT.seekTo(Math.max(0, cur - 10));
+    });
+  }
+
+  // Ctrl + Right Arrow: Next Track
+  else if (e.key === 'ArrowRight' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    nextTrack();
+  }
+
+  // Ctrl + Left Arrow: Previous Track
+  else if (e.key === 'ArrowLeft' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    prevTrack();
+  }
+
+  // Up Arrow: Volume Up
+  else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const volSlider = document.getElementById('volume-slider');
+    let currentVol = volSlider ? parseInt(volSlider.value, 10) : FM.getVolume();
+    let newVol = Math.min(100, currentVol + 5);
+    import('./youtube.js').then((YT) => YT.setVolume(newVol));
+    if (volSlider) volSlider.value = newVol;
+  }
+
+  // Down Arrow: Volume Down
+  else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const volSlider = document.getElementById('volume-slider');
+    let currentVol = volSlider ? parseInt(volSlider.value, 10) : FM.getVolume();
+    let newVol = Math.max(0, currentVol - 5);
+    import('./youtube.js').then((YT) => YT.setVolume(newVol));
+    if (volSlider) volSlider.value = newVol;
+  }
+
+  // Ctrl + S: Toggle Shuffle
+  else if (e.key.toLowerCase() === 's' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    toggleShuffle();
+  }
+
+  // Ctrl + L: Toggle Loop (Repeat)
+  else if (e.key.toLowerCase() === 'l' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    toggleRepeat();
+  }
 }
+
 
 // ── Input Validation Helpers ──────────────────────────────────────────────────
 

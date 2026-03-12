@@ -158,78 +158,9 @@ export function loadVideo(videoId) {
   }
 }
 
-/**
- * Switches between Audio and Video mode.
- * @param {string} newMode - 'audio' | 'video'
- */
-export function toggleMode(newMode) {
-  currentMode = newMode;
-  FM.setMode(newMode);
 
-  if (newMode === 'video') {
-    showVideoPanel();
-  } else {
-    hideVideoPanel();
-  }
 
-  // Reload current video in new mode context (new search suffix)
-  if (currentVideoId) {
-    loadVideo(currentVideoId);
-  }
 
-  updateModeToggleUI(newMode);
-}
-
-/** Shows the video panel above the player bar with slide-up animation. */
-export function showVideoPanel() {
-  const panel = document.getElementById('video-panel');
-  const playerContainer = document.getElementById('yt-player-container');
-  const videoSlot = document.getElementById('video-player-slot');
-
-  if (!panel) return;
-
-  if (videoSlot && playerContainer) {
-    videoSlot.appendChild(playerContainer);
-  }
-
-  panel.classList.remove('hidden');
-  requestAnimationFrame(() => {
-    panel.style.transform = 'translateY(0)';
-  });
-}
-
-/** Hides the video panel with a slide-down animation. */
-export function hideVideoPanel() {
-  const panel = document.getElementById('video-panel');
-  const playerContainer = document.getElementById('yt-player-container');
-  const hiddenSlot = document.getElementById('yt-hidden-slot');
-
-  if (!panel) return;
-
-  panel.style.transform = 'translateY(100%)';
-  setTimeout(() => {
-    panel.classList.add('hidden');
-    if (hiddenSlot && playerContainer) {
-      hiddenSlot.appendChild(playerContainer);
-    }
-  }, 300);
-}
-
-/** Updates the mode toggle pill UI to reflect current mode. */
-function updateModeToggleUI(mode) {
-  const audioBtn = document.getElementById('mode-audio');
-  const videoBtn = document.getElementById('mode-video');
-  const modeSlider = document.getElementById('mode-slider');
-
-  if (audioBtn && videoBtn) {
-    audioBtn.classList.toggle('active', mode === 'audio');
-    videoBtn.classList.toggle('active', mode === 'video');
-  }
-
-  if (modeSlider) {
-    modeSlider.style.transform = mode === 'video' ? 'translateX(100%)' : 'translateX(0)';
-  }
-}
 
 // ── Player Control Wrappers ───────────────────────────────────────────────────
 
@@ -277,5 +208,5 @@ export function pause() {
 export function onTrackEnded(cb) { onTrackEndedCallback = cb; }
 export function onStateChange(cb) { onPlayerStateChangeCallback = cb; }
 
-/** Expose current mode */
-export function getMode() { return currentMode; }
+/** Expose current mode (always 'audio') */
+export function getMode() { return 'audio'; }
