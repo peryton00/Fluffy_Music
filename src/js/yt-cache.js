@@ -9,6 +9,10 @@ export function normalizeKey(songName, artist) {
   return `fm_yt_${norm(songName)}_${norm(artist)}`;
 }
 
+// 90 days expiration in ms (long term memory)
+const CACHE_EXPIRATION = 90 * 24 * 60 * 60 * 1000;
+
+
 export function getFromCache(songName, artist) {
   const key = normalizeKey(songName, artist);
   const raw = localStorage.getItem(key);
@@ -16,7 +20,7 @@ export function getFromCache(songName, artist) {
 
   try {
     const entry = JSON.parse(raw);
-    if (Date.now() - entry.cachedAt > 2592000000) {
+    if (Date.now() - entry.cachedAt > CACHE_EXPIRATION) {
       localStorage.removeItem(key);
       return null;
     }
@@ -30,10 +34,9 @@ export function saveToCache(songName, artist, videoData) {
   const key = normalizeKey(songName, artist);
   const entry = { ...videoData, cachedAt: Date.now() };
   localStorage.setItem(key, JSON.stringify(entry));
-  checkCacheSize();
 }
 
-export function checkCacheSize() {
+export function checkCacheSize(protectedVideoIds = []) {
   let totalBytes = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -44,17 +47,19 @@ export function checkCacheSize() {
   }
 
   if (totalBytes > 4194304) { // 4MB
-    evictOldestEntries(20);
+    evictOldestEntries(20, protectedVideoIds);
   }
 }
 
-export function evictOldestEntries(percentToRemove) {
+export function evictOldestEntries(percentToRemove, protectedVideoIds = []) {
   const entries = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('fm_yt_')) {
       try {
         const val = JSON.parse(localStorage.getItem(key));
+        // Protect currently playing or queued tracks
+        if (protectedVideoIds.includes(val.videoId)) continue;
         entries.push({ key, cachedAt: val.cachedAt || 0 });
       } catch (e) {
         // Skip corrupted
@@ -68,7 +73,7 @@ export function evictOldestEntries(percentToRemove) {
   for (let i = 0; i < count; i++) {
     localStorage.removeItem(entries[i].key);
   }
-  console.log(`Cache evicted ${count} old entries`);
+  console.log(`Cache: evicted ${count} old entries (protected ${protectedVideoIds.length} tracks)`);
 }
 
 export function cleanExpiredEntries() {
@@ -78,7 +83,7 @@ export function cleanExpiredEntries() {
     if (key && key.startsWith('fm_yt_')) {
       try {
         const val = JSON.parse(localStorage.getItem(key));
-        if (val.cachedAt + 2592000000 < Date.now()) {
+        if (val.cachedAt + CACHE_EXPIRATION < Date.now()) {
           localStorage.removeItem(key);
           count++;
         }

@@ -48,6 +48,11 @@ export async function loadTrack(track, queue = [], index = 0) {
   if (track.album === 'YouTube Radio') {
     YT.loadVideo(track.id);
   } else {
+    // Pass current queue IDs to protect them from cache eviction
+    const protectedIds = currentQueue.map(t => t.id).filter(Boolean);
+    import('./yt-cache.js').then(Cache => {
+      Cache.checkCacheSize(protectedIds);
+    });
     await YT.searchAndPlay(track.name, track.artist);
   }
 

@@ -41,9 +41,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const recentLinks = FM.getSavedLinks().slice(0, 4);
   renderHomeView(recentLinks);
 
-  // 4. Restore last played info in player bar (no autoplay)
+  // 4. Restore last played info / playlist session
   const lastPlayed = FM.getLastPlayed();
-  if (lastPlayed && window.updatePlayerBar) {
+  const lastPlaylist = FM.getCurrentPlaylist();
+
+  if (lastPlaylist) {
+    currentPlaylistData = lastPlaylist;
+    allLoadedTracks = lastPlaylist.tracks || [];
+    
+    // Render the view without auto-playing
+    renderPlaylistHero(
+      { ...lastPlaylist },
+      (shuffle) => {
+        if (shuffle) {
+          loadTrack(allLoadedTracks[Math.floor(Math.random() * allLoadedTracks.length)], allLoadedTracks, 0);
+          toggleShuffle();
+        } else {
+          loadTrack(allLoadedTracks[0], allLoadedTracks, 0);
+        }
+      },
+      () => saveCurrentToLibrary(lastPlaylist.url, lastPlaylist.type, lastPlaylist),
+      isLinkSaved(lastPlaylist.id)
+    );
+
+    renderTrackList(allLoadedTracks, 'track-list-container', (track, queue, idx) => {
+      loadTrack(track, queue, idx);
+    });
+
+    if (lastPlayed) {
+      window.updatePlayerBar(lastPlayed);
+      window.highlightCurrentTrack(lastPlayed.id);
+    }
+  } else if (lastPlayed && window.updatePlayerBar) {
     window.updatePlayerBar(lastPlayed);
   }
 
@@ -127,6 +156,9 @@ async function handleSpotifyLink(url) {
     const firstPage = await fetchSpotifyData(type, id, 0);
     currentPlaylistData = firstPage;
     allLoadedTracks = [...firstPage.tracks];
+
+    // Save current playlist to session storage for persistence
+    FM.setCurrentPlaylist({ ...firstPage, tracks: allLoadedTracks, type, url });
 
     const isSaved = isLinkSaved(id);
 
@@ -376,7 +408,25 @@ function attachEventListeners() {
 
   // ── Keyboard Shortcuts ──
   document.addEventListener('keydown', handleGlobalKeyboardShortcuts);
+
+  // ── Mobile Sidebar ──
+  const hamburger = document.getElementById('hamburger');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  if (hamburger && sidebar && overlay) {
+    const toggleSidebar = () => {
+      const isOpen = sidebar.classList.toggle('open');
+      hamburger.setAttribute('aria-expanded', isOpen);
+      overlay.style.opacity = isOpen ? '1' : '0';
+      overlay.style.pointerEvents = isOpen ? 'auto' : 'none';
+    };
+
+    hamburger.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+  }
 }
+
 
 // ── Keyboard Shortcuts Handling ────────────────────────────────────────────────
 
