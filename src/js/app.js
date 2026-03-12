@@ -209,33 +209,45 @@ async function saveCurrentToLibrary(url, type, data) {
 
 async function searchYouTube(query) {
   try {
-    const res = await fetch(`/api/search-youtube?q=${encodeURIComponent(query)}&mode=audio`);
-    const data = await res.json();
+    const encoded = encodeURIComponent(query);
+    // Try Piped first, fall back to YouTube
+    let data = null;
+    let res = await fetch(
+      `/api/search-youtube?q=${encoded}&source=piped`
+    );
+    if (res.ok) data = await res.json();
 
-    if (!res.ok || data.error || !data.tracks || data.tracks.length === 0) {
-      showToast(data.message === 'youtube_quota_exceeded'
-        ? 'YouTube search limit reached. Try again tomorrow.'
-        : 'No results found.', 'error');
+    if (!data || data.error ||
+        !data.results?.length) {
+      res = await fetch(
+        `/api/search-youtube?q=${encoded}&source=youtube`
+      );
+      if (res.ok) data = await res.json();
+    }
+
+    if (!data || data.error ||
+        !data.results?.length) {
+      showToast('No results found.', 'error');
       return;
     }
 
-    // Convert the returned tracks into the app's internal track format
-    const syntheticQueue = data.tracks.map(t => ({
+    // Convert results to internal track format
+    const syntheticQueue = data.results.map(t => ({
       id: t.videoId,
       name: t.title,
       artist: t.channelName,
       artists: t.channelName,
       album: 'YouTube Radio',
       albumArt: t.thumbnail || '',
-      duration: 0,
+      duration: (t.duration || 0) * 1000,
       spotifyId: t.videoId,
     }));
 
-    // Pass the entire queue to the player, starting at index 0
     loadTrack(syntheticQueue[0], syntheticQueue, 0);
 
   } catch (err) {
-    showToast('Search failed. Please try again.', 'error');
+    showToast('Search failed. Please try again.',
+      'error');
   }
 }
 

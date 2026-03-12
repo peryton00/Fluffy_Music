@@ -1,13 +1,32 @@
 // src/js/youtube.js — YouTube IFrame Player management
 
 import { FM } from './storage.js';
+import {
+  getFromCache,
+  saveToCache,
+  cleanExpiredEntries
+} from './yt-cache.js';
 
 let ytPlayer = null;
 let currentVideoId = null;
 let playerReady = false;
-let currentMode = FM.getMode();
 let pendingVideoId = null;
 let quotaExceeded = false;
+let resultQueue = [];
+let currentResultIndex = 0;
+let currentSearchQuery = '';
+
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://piped-api.garudalinux.org',
+  'https://api.piped.projectsegfau.lt'
+];
+
+const INVIDIOUS_INSTANCES = [
+  'https://invidious.snopyta.org',
+  'https://invidious.kavin.rocks',
+  'https://y.com.sb'
+];
 
 // Callbacks registered from player.js
 let onTrackEndedCallback = null;
@@ -19,6 +38,9 @@ let onPlayerStateChangeCallback = null;
  */
 export function initYouTubeAPI() {
   if (document.getElementById('yt-api-script')) return;
+
+  // Clean expired cache entries on startup
+  cleanExpiredEntries();
 
   window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
@@ -85,8 +107,9 @@ function onYouTubeIframeAPIReady() {
         const msg = errorCodes[event.data] || `YT error ${event.data}`;
         console.warn('YouTube player error:', msg);
         // Trigger next track on unrecoverable errors
-        if ([100, 101, 150].includes(event.data)) {
-          if (onTrackEndedCallback) onTrackEndedCallback();
+        if ([2, 5, 100, 101, 150].includes(event.data)) {
+          // Try next result in queue before skipping track
+          tryNextResult();
         }
       },
     },
@@ -99,48 +122,174 @@ function onYouTubeIframeAPIReady() {
  * @param {string} artist
  * @param {boolean} fallbackNoArtist - internal flag to retry without artist
  */
-export async function searchAndPlay(trackName, artist, fallbackNoArtist = false) {
-  if (quotaExceeded) {
-    if (window.showToast) window.showToast('YouTube search limit reached. Try again tomorrow.', 'error');
+export async function searchAndPlay(trackName, artist) {
+  // Step 1: Check client-side cache first
+  const cached = getFromCache(trackName, artist);
+  if (cached) {
+    resultQueue = [cached];
+    currentResultIndex = 0;
+    currentVideoId = cached.videoId;
+    loadVideo(cached.videoId);
     return;
   }
 
-  const query = fallbackNoArtist
-    ? encodeURIComponent(trackName)
-    : encodeURIComponent(`${trackName} ${artist}`);
+  // Step 2: Build search query
+  const query = `${trackName} ${artist} audio`;
+  currentSearchQuery = query;
 
-  const mode = FM.getMode();
+  // Step 3: Fetch top 15 results
+  const results = await fetchTop15Results(query);
 
-  try {
-    const res = await fetch(`/api/search-youtube?q=${query}&mode=${mode}`);
-    const data = await res.json();
-
-    if (res.status === 429) {
-      quotaExceeded = true;
-      if (window.showToast) window.showToast('YouTube search limit reached. Try again tomorrow.', 'error');
-      return;
+  if (!results || results.length === 0) {
+    if (window.showToast) {
+      window.showToast(
+        `Couldn't find "${trackName}", skipping...`,
+        'error'
+      );
     }
-
-    if (res.status === 404 || data.error) {
-      if (!fallbackNoArtist) {
-        // Retry without the artist name
-        return searchAndPlay(trackName, artist, true);
-      }
-      if (window.showToast) {
-        window.showToast(`Couldn't find "${trackName}", skipping...`, 'error');
-      }
-      if (onTrackEndedCallback) onTrackEndedCallback();
-      return;
-    }
-
-    currentVideoId = data.videoId;
-    loadVideo(data.videoId);
-  } catch (err) {
-    console.error('searchAndPlay error:', err.message);
-    if (!fallbackNoArtist) {
-      return searchAndPlay(trackName, artist, true);
-    }
+    if (onTrackEndedCallback) onTrackEndedCallback();
+    return;
   }
+
+  // Step 4: Score and rank results
+  const scored = scoreResults(results, trackName, artist);
+  resultQueue = scored;
+  currentResultIndex = 0;
+
+  // Step 5: Play best result + cache it
+  const best = resultQueue[0];
+  currentVideoId = best.videoId;
+  saveToCache(trackName, artist, best);
+  loadVideo(best.videoId);
+}
+
+export function tryNextResult() {
+  currentResultIndex++;
+  if (currentResultIndex < resultQueue.length) {
+    const next = resultQueue[currentResultIndex];
+    currentVideoId = next.videoId;
+    loadVideo(next.videoId);
+  } else {
+    // All results exhausted
+    if (onTrackEndedCallback) onTrackEndedCallback();
+  }
+}
+
+async function fetchTop15Results(query) {
+  const encoded = encodeURIComponent(query);
+
+  // Try Piped first (via backend proxy)
+  try {
+    const res = await fetch(
+      `/api/search-youtube?q=${encoded}&source=piped`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.results?.length > 0) {
+        return data.results;
+      }
+    }
+  } catch (e) {
+    console.warn('Piped search failed:', e.message);
+  }
+
+  // Try Invidious (via backend proxy)
+  try {
+    const res = await fetch(
+      `/api/search-youtube?q=${encoded}&source=invidious`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.results?.length > 0) {
+        return data.results;
+      }
+    }
+  } catch (e) {
+    console.warn('Invidious search failed:', e.message);
+  }
+
+  // Fall back to YouTube Data API v3
+  try {
+    const res = await fetch(
+      `/api/search-youtube?q=${encoded}&source=youtube`
+    );
+    if (res.status === 429) {
+      if (window.showToast) {
+        window.showToast(
+          'YouTube search limit reached. Try again tomorrow.',
+          'error'
+        );
+      }
+      return [];
+    }
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.results?.length > 0) {
+        return data.results;
+      }
+    }
+  } catch (e) {
+    console.warn('YouTube API search failed:', e.message);
+  }
+
+  return [];
+}
+
+function scoreResults(results, trackName, artist) {
+  const trackLower = trackName.toLowerCase();
+  const artistLower = artist.toLowerCase();
+
+  const scored = results.map(item => {
+    const titleLower = item.title.toLowerCase();
+    const channelLower = item.channelName.toLowerCase();
+    let score = 0;
+
+    // Title matching (max 40 points)
+    if (titleLower.includes(trackLower) &&
+        titleLower.includes(artistLower)) {
+      score += 40;
+    } else if (titleLower.includes(trackLower)) {
+      score += 25;
+    } else if (titleLower.includes(artistLower)) {
+      score += 10;
+    }
+
+    // Channel matching (max 20 points)
+    if (channelLower.includes(artistLower)) {
+      score += 20;
+    } else if (channelLower.includes('vevo') ||
+               channelLower.includes('official')) {
+      score += 10;
+    }
+
+    // Title quality (max 20 points)
+    if (titleLower.includes('audio') ||
+        titleLower.includes('lyrics')) {
+      score += 20;
+    }
+    if (titleLower.includes('cover')) score -= 20;
+    if (titleLower.includes('karaoke')) score -= 20;
+    if (titleLower.includes('remix') &&
+        !trackLower.includes('remix')) score -= 20;
+    if (titleLower.includes(' live')) score -= 15;
+    if (titleLower.includes('reaction')) score -= 10;
+    if (titleLower.includes('tutorial')) score -= 10;
+
+    // Duration scoring (max 20 points)
+    const dur = item.duration || 0;
+    if (dur > 0) {
+      if (dur >= 120 && dur <= 480) score += 20;
+      else if (dur >= 60 && dur <= 600) score += 10;
+      else if (dur < 60) score -= 10;
+      else if (dur > 600) score -= 10;
+    }
+
+    return { ...item, score };
+  });
+
+  // Sort by score descending
+  scored.sort((a, b) => b.score - a.score);
+  return scored;
 }
 
 /**
