@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Fluffy Music — Stream Spotify playlists via YouTube",
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "vercel dev",
