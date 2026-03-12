@@ -45,8 +45,13 @@ export const FM = {
       return null;
     }
   },
-  setLastPlayed: (track) =>
-    localStorage.setItem('fm_last_played', JSON.stringify(track)),
+  setLastPlayed: (track) => {
+    // Strip videoId and any other YouTube-specific identifiers to force re-discovery on restore
+    const cleanTrack = { ...track };
+    delete cleanTrack.videoId;
+    if (cleanTrack.album === 'YouTube Radio') delete cleanTrack.id;
+    localStorage.setItem('fm_last_played', JSON.stringify(cleanTrack));
+  },
 
   // ── Current Session ───────────────────────────────────────────────────────
   setCurrentPlaylist: (data) =>

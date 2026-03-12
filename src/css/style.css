@@ -787,7 +787,8 @@ ul {
 /* ── Music Bars Animation ────────────────────────────────────────────────────── */
 .music-bars {
   display: none;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
   height: 16px;
 }

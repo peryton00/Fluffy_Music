@@ -104,9 +104,13 @@ function onYouTubeIframeAPIReady() {
         // Restore saved volume (force 100% on mobile/tablet where slider is often hidden)
         const savedVol = window.innerWidth <= 1024 ? 100 : FM.getVolume();
         ytPlayer.setVolume(savedVol);
-        // Play any video that was queued while player was loading
+        // Play/Cue any video that was queued while player was loading
         if (pendingVideoId) {
-          ytPlayer.loadVideoById(pendingVideoId);
+          if (window._ytLoadMethod === 'cue') {
+            ytPlayer.cueVideoById(pendingVideoId);
+          } else {
+            ytPlayer.loadVideoById(pendingVideoId);
+          }
           pendingVideoId = null;
         }
       },
@@ -140,19 +144,23 @@ function onYouTubeIframeAPIReady() {
 }
 
 /**
- * Searches YouTube for the best matching video and plays it.
+ * Searches YouTube for the best matching video and plays it (or cues it).
  * @param {string} trackName
  * @param {string} artist
- * @param {boolean} fallbackNoArtist - internal flag to retry without artist
+ * @param {object} options - { autoPlay: true }
  */
-export async function searchAndPlay(trackName, artist) {
+export async function searchAndPlay(trackName, artist, options = { autoPlay: true }) {
   // Step 1: Check client-side cache first
   const cached = getFromCache(trackName, artist);
   if (cached) {
     resultQueue = [cached];
     currentResultIndex = 0;
     currentVideoId = cached.videoId;
-    loadVideo(cached.videoId);
+    if (options.autoPlay) {
+      loadVideo(cached.videoId);
+    } else {
+      cueVideo(cached.videoId);
+    }
     return cached;
   }
 
@@ -183,7 +191,11 @@ export async function searchAndPlay(trackName, artist) {
   const best = resultQueue[0];
   currentVideoId = best.videoId;
   saveToCache(trackName, artist, best);
-  loadVideo(best.videoId);
+  if (options.autoPlay) {
+    loadVideo(best.videoId);
+  } else {
+    cueVideo(best.videoId);
+  }
   return best;
 }
 
@@ -328,8 +340,7 @@ function scoreResults(results, trackName, artist) {
 }
 
 /**
- * Loads a video into the YouTube player by ID.
- * Queues it if the player isn't ready yet.
+ * Loads a video into the YouTube player by ID (starts playback).
  * @param {string} videoId
  */
 export function loadVideo(videoId) {
@@ -338,6 +349,22 @@ export function loadVideo(videoId) {
     ytPlayer.loadVideoById(videoId);
   } else {
     pendingVideoId = videoId;
+    // Set internal state to load when ready
+    window._ytLoadMethod = 'load';
+  }
+}
+
+/**
+ * Cues a video into the YouTube player by ID (pre-loads without playing).
+ * @param {string} videoId
+ */
+export function cueVideo(videoId) {
+  currentVideoId = videoId;
+  if (playerReady && ytPlayer) {
+    ytPlayer.cueVideoById(videoId);
+  } else {
+    pendingVideoId = videoId;
+    window._ytLoadMethod = 'cue';
   }
 }
 

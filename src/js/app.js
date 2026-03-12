@@ -69,11 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (lastPlayed) {
-      window.updatePlayerBar(lastPlayed);
-      window.highlightCurrentTrack(lastPlayed.id);
+      loadTrack(lastPlayed, allLoadedTracks, 0, { autoPlay: false });
     }
-  } else if (lastPlayed && window.updatePlayerBar) {
-    window.updatePlayerBar(lastPlayed);
+  } else if (lastPlayed) {
+    loadTrack(lastPlayed, [], 0, { autoPlay: false });
   }
 
   // 5. Restore volume

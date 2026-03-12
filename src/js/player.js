@@ -21,8 +21,9 @@ let isDraggingProgress = false;
  * @param {object} track - Normalized track object
  * @param {Array} queue - Full track list
  * @param {number} index - Track's index in queue
+ * @param {object} options - { autoPlay: true }
  */
-export async function loadTrack(track, queue = [], index = 0) {
+export async function loadTrack(track, queue = [], index = 0, options = { autoPlay: true }) {
   currentTrack = track;
   currentQueue = queue;
   currentIndex = index;
@@ -34,19 +35,21 @@ export async function loadTrack(track, queue = [], index = 0) {
   // Update document title
   document.title = `${track.name} – ${track.artist} | Fluffy Music`;
 
-  // Save last played
-  FM.setLastPlayed(track);
+  // Save last played (if autoPlaying, we update storage)
+  if (options.autoPlay) {
+    FM.setLastPlayed(track);
 
-  // Update Firestore last played if logged in
-  if (isLoggedIn()) {
-    const user = getCurrentUser();
-    // Don't block on this
-    updateLastPlayedCloud(user.uid, track.spotifyId).catch(() => {});
+    // Update Firestore last played if logged in
+    if (isLoggedIn()) {
+      const user = getCurrentUser();
+      updateLastPlayedCloud(user.uid, track.spotifyId).catch(() => {});
+    }
   }
 
   // Tell YouTube to search and play
   if (track.album === 'YouTube Radio') {
-    YT.loadVideo(track.id);
+    if (options.autoPlay) YT.loadVideo(track.id);
+    else YT.cueVideo(track.id);
   } else {
     // Pass current queue IDs to protect them from cache eviction
     const protectedIds = currentQueue.map(t => t.id).filter(Boolean);
@@ -54,7 +57,7 @@ export async function loadTrack(track, queue = [], index = 0) {
       Cache.checkCacheSize(protectedIds);
     });
     
-    const video = await YT.searchAndPlay(track.name, track.artist);
+    const video = await YT.searchAndPlay(track.name, track.artist, { autoPlay: options.autoPlay });
     
     // Update track artwork from YouTube thumbnail if available
     if (video && video.thumbnail) {
