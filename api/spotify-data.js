@@ -93,6 +93,8 @@ async function fetchAlbumTracksPage(albumId, token, offset, limit) {
 /**
  * Native scraping fallback using the public Spotify Embed Widget.
  * Bypasses the need for any API keys or Premium accounts.
+ * Note: The embed widget returns ALL tracks at once (max ~100 for most playlists).
+ * For playlists > 100 tracks, this is a known limitation.
  */
 async function fetchSpotifyScrape(type, id, offset, limit) {
   const url = `https://open.spotify.com/embed/${type}/${id}`;
@@ -118,21 +120,26 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
     throw new Error('scrape_no_entity');
   }
 
-  const coverArt = entity.coverArt?.sources?.[0]?.url || 
-                   data.props?.pageProps?.state?.data?.visualIdentity?.image?.[0]?.url || '';
+  // Get the best cover art from the entity's visual identity
+  const visualImages = entity.visualIdentity?.image || 
+                       data.props?.pageProps?.state?.data?.visualIdentity?.image || [];
+  const coverArt = entity.coverArt?.sources?.slice(-1)[0]?.url ||  // largest coverArt
+                   visualImages.slice(-1)[0]?.url ||               // largest visual
+                   entity.coverArt?.sources?.[0]?.url || '';
 
   if (type === 'track') {
     const artist = entity.artists && entity.artists.length > 0 ? entity.artists[0].name : 'Unknown Artist';
     const artists = entity.artists ? entity.artists.map(a => a.name).join(', ') : artist;
-    const album = entity.album ? entity.album.name : '';
+    // For a track, the cover art is the album art
+    const albumArt = coverArt;
 
     const normalized = {
       id: entity.id,
       name: entity.title || entity.name,
       artist,
       artists,
-      album,
-      albumArt: coverArt,
+      album: entity.album?.name || '',
+      albumArt,
       duration: entity.duration || 0,
       spotifyId: entity.id,
     };
@@ -142,7 +149,7 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
       id,
       name: normalized.name,
       description: `By ${normalized.artists}`,
-      coverArt,
+      coverArt: albumArt,
       totalTracks: 1,
       tracks: [normalized],
       hasMore: false,
@@ -150,27 +157,45 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
     };
   }
 
-  // Playlist or Album
+  // Playlist or Album — trackList contains ALL tracks from the embed (up to ~100)
   const trackList = entity.trackList || [];
-  const totalTracks = trackList.length;
+  const totalTracksFromEmbed = trackList.length;
   
-  // Embed only gives up to 100 tracks usually, we paginate from what we have
+  // The entity might also tell us the actual total on Spotify
+  // (for playlists > 100, the embed widget truncates at 100)
+  const totalTracks = totalTracksFromEmbed;
+  
+  // Paginate from what we have in-memory
   const pageTracks = trackList.slice(offset, offset + limit);
   
   const normalizedTracks = pageTracks.map(t => {
-    // subtitle often contains artists, but could contain more. We'll use subtitle.
+    // subtitle is the artist name(s) for playlist tracks
     const artists = t.subtitle || 'Unknown Artist';
-    const artist = artists.split(',')[0];
+    const artist = artists.split(',')[0].trim();
+    
+    // Get track-level cover art using the Spotify CDN image URL.
+    // Spotify track thumbnails follow: https://i.scdn.co/image/{image_hash}
+    // The embed doesn't give us per-track images for playlist items, so
+    // we derive it from the audioPreview URL which contains the same image hash
+    // pattern sometimes — but the most reliable fallback is the playlist cover.
+    // For album tracks, all share the album art (coverArt).
+    let albumArt = coverArt; // default to playlist/album cover
+    if (t.coverArt?.sources?.length > 0) {
+      albumArt = t.coverArt.sources.slice(-1)[0]?.url || t.coverArt.sources[0]?.url || coverArt;
+    }
+    
+    // Extract the Spotify track ID from the URI (spotify:track:XXXX)
+    const spotifyId = t.uri?.split(':').pop() || '';
     
     return {
-      id: t.uid || t.uri?.split(':').pop() || t.id,
+      id: t.uid || spotifyId || t.id,
       name: t.title,
       artist,
       artists,
       album: type === 'album' ? (entity.name || entity.title) : '',
-      albumArt: t.coverArt?.sources?.[0]?.url || coverArt,
+      albumArt,
       duration: t.duration || 0,
-      spotifyId: t.uri?.split(':').pop() || t.id,
+      spotifyId,
     };
   });
 
@@ -178,7 +203,7 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
   const hasMore = nextOffset < totalTracks;
   const description = type === 'album' 
     ? `By ${entity.subtitle || ''}` 
-    : (entity.description || entity.subtitle || '');
+    : (entity.description || entity.attributes?.find(a => a.key === 'episode_description')?.value || '');
 
   return {
     type,
@@ -192,6 +217,7 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
     nextOffset,
   };
 }
+
 
 module.exports = async function handler(req, res) {
   // Handle CORS preflight

@@ -100,19 +100,23 @@ async function handleSpotifyLink(url) {
   const { type, id } = parsed;
   isLoadingSpotify = true;
 
-  // Show loading state
+  // Show loading state — structure with hero-section AND track-list-container
   const mainContent = document.getElementById('main-content');
   if (mainContent) {
     mainContent.innerHTML = `
-      <div class="hero-skeleton">
-        <div class="skeleton skeleton-hero-art"></div>
-        <div class="skeleton-hero-info">
-          <div class="skeleton skeleton-hero-title"></div>
-          <div class="skeleton skeleton-hero-sub"></div>
-          <div class="skeleton skeleton-hero-btns"></div>
+      <div id="playlist-view">
+        <div id="hero-section">
+          <div class="hero-skeleton">
+            <div class="skeleton skeleton-hero-art"></div>
+            <div class="skeleton-hero-info">
+              <div class="skeleton skeleton-hero-title"></div>
+              <div class="skeleton skeleton-hero-sub"></div>
+              <div class="skeleton skeleton-hero-btns"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div id="track-list-container"></div>`;
+        <div id="track-list-container"></div>
+      </div>`;
   }
 
   // Show skeleton track list
@@ -268,8 +272,8 @@ function attachEventListeners() {
     });
   }
 
-  // ── Home view events (delegated since home is rendered dynamically) ──
-  document.getElementById('main-content')?.addEventListener('input', (e) => {
+  // ── Home view events (delegated on document since home-content is replaced) ──
+  document.addEventListener('input', (e) => {
     if (e.target.id === 'home-url-input') {
       const val = e.target.value.trim();
       const box = document.getElementById('home-input-box');
@@ -280,7 +284,7 @@ function attachEventListeners() {
     }
   });
 
-  document.getElementById('main-content')?.addEventListener('click', (e) => {
+  document.addEventListener('click', (e) => {
     if (e.target.id === 'home-play-btn' || e.target.closest('#home-play-btn')) {
       const input = document.getElementById('home-url-input');
       if (input?.value.trim()) handleSpotifyLink(input.value.trim());
@@ -292,7 +296,7 @@ function attachEventListeners() {
     }
   });
 
-  document.getElementById('main-content')?.addEventListener('paste', (e) => {
+  document.addEventListener('paste', (e) => {
     if (e.target.id === 'home-url-input') {
       setTimeout(() => {
         const val = e.target.value.trim();
@@ -303,7 +307,7 @@ function attachEventListeners() {
     }
   });
 
-  document.getElementById('main-content')?.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e) => {
     if (e.target.id === 'home-url-input' && e.key === 'Enter') {
       const val = e.target.value.trim();
       if (val) handleSpotifyLink(val);
