@@ -55,8 +55,9 @@ function onYouTubeIframeAPIReady() {
     events: {
       onReady: () => {
         playerReady = true;
-        // Restore saved volume
-        ytPlayer.setVolume(FM.getVolume());
+        // Restore saved volume (force 100% on mobile/tablet where slider is often hidden)
+        const savedVol = window.innerWidth <= 1024 ? 100 : FM.getVolume();
+        ytPlayer.setVolume(savedVol);
         // Play any video that was queued while player was loading
         if (pendingVideoId) {
           ytPlayer.loadVideoById(pendingVideoId);
@@ -252,10 +253,13 @@ export function seekTo(seconds) {
 
 /**
  * Sets the player volume and saves preference.
+ * On mobile/tablet screens (<= 1024px), forces 100% internal volume 
+ * so users can rely on hardware volume buttons instead.
  * @param {number} level - 0-100
  */
 export function setVolume(level) {
-  if (playerReady && ytPlayer) ytPlayer.setVolume(level);
+  const actualLevel = window.innerWidth <= 1024 ? 100 : level;
+  if (playerReady && ytPlayer) ytPlayer.setVolume(actualLevel);
   FM.setVolume(level);
 }
 
