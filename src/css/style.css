@@ -1606,13 +1606,13 @@ ul {
     max-width: none;
   }
 
-  /* Player bar: 3-col compact layout */
+  /* Player bar: 2-col compact layout (player-right is hidden) */
   #player-bar {
-    grid-template-columns: auto 1fr auto;
-    height: auto;
-    min-height: var(--player-h);
-    padding: 8px 12px;
+    grid-template-columns: auto 1fr;
+    height: var(--player-h);
+    padding: 0 12px;
     gap: 8px;
+    z-index: 300;
   }
   .player-track-info {
     min-width: 0;
@@ -1737,14 +1737,11 @@ ul {
 
 /* Extra small screens */
 @media (max-width: 380px) {
-  #player-bar {
-    grid-template-columns: auto 1fr;
-  }
   .player-track-info {
-    max-width: 100px;
+    max-width: 90px;
   }
-  .ctrl-btn:first-child,
-  .ctrl-btn:last-child {
+  #btn-shuffle,
+  #btn-repeat {
     display: none;
   }
 }
