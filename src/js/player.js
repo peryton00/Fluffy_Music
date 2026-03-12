@@ -38,6 +38,7 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
   // Save last played (if autoPlaying, we update storage)
   if (options.autoPlay) {
     FM.setLastPlayed(track);
+    FM.setLastIndex(index);
 
     // Update Firestore last played if logged in
     if (isLoggedIn()) {

@@ -69,10 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (lastPlayed) {
-      loadTrack(lastPlayed, allLoadedTracks, 0, { autoPlay: false });
+      const lastIndex = FM.getLastIndex();
+      loadTrack(lastPlayed, allLoadedTracks, lastIndex, { autoPlay: false });
     }
   } else if (lastPlayed) {
-    loadTrack(lastPlayed, [], 0, { autoPlay: false });
+    const lastIndex = FM.getLastIndex();
+    loadTrack(lastPlayed, [], lastIndex, { autoPlay: false });
   }
 
   // 5. Restore volume
@@ -181,10 +183,6 @@ async function handleSpotifyLink(url) {
       loadTrack(track, queue, idx);
     });
 
-    // Auto-play first track
-    if (allLoadedTracks.length > 0) {
-      loadTrack(allLoadedTracks[0], allLoadedTracks, 0);
-    }
 
     // Fetch remaining tracks in background
     if (firstPage.hasMore) {

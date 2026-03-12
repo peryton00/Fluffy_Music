@@ -38,6 +38,9 @@ export const FM = {
   getMode: () => localStorage.getItem('fm_mode') || 'audio',
   setMode: (mode) => localStorage.setItem('fm_mode', mode),
 
+  getLastIndex: () => parseInt(localStorage.getItem('fm_last_index') || '0', 10),
+  setLastIndex: (idx) => localStorage.setItem('fm_last_index', String(idx)),
+
   getLastPlayed: () => {
     try {
       return JSON.parse(localStorage.getItem('fm_last_played') || 'null');
