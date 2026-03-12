@@ -153,7 +153,7 @@ export async function searchAndPlay(trackName, artist) {
     currentResultIndex = 0;
     currentVideoId = cached.videoId;
     loadVideo(cached.videoId);
-    return;
+    return cached;
   }
 
   // Step 2: Build search query
@@ -171,7 +171,7 @@ export async function searchAndPlay(trackName, artist) {
       );
     }
     if (onTrackEndedCallback) onTrackEndedCallback();
-    return;
+    return null;
   }
 
   // Step 4: Score and rank results
@@ -184,6 +184,7 @@ export async function searchAndPlay(trackName, artist) {
   currentVideoId = best.videoId;
   saveToCache(trackName, artist, best);
   loadVideo(best.videoId);
+  return best;
 }
 
 export function tryNextResult() {

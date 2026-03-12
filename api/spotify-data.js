@@ -54,7 +54,7 @@ function normalizeTrack(trackObj, albumOverride = null) {
     artist: artistsArr[0] || 'Unknown Artist',
     artists: artistsArr.join(', '),
     album: album.name || '',
-    albumArt,
+    albumArt: '',
     duration: trackObj.duration_ms || 0,
     spotifyId: trackObj.id,
   };

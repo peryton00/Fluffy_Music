@@ -740,6 +740,10 @@ ul {
   height: 40px;
   border-radius: 4px;
   background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
 }
 
 .track-info {

@@ -53,7 +53,14 @@ export async function loadTrack(track, queue = [], index = 0) {
     import('./yt-cache.js').then(Cache => {
       Cache.checkCacheSize(protectedIds);
     });
-    await YT.searchAndPlay(track.name, track.artist);
+    
+    const video = await YT.searchAndPlay(track.name, track.artist);
+    
+    // Update track artwork from YouTube thumbnail if available
+    if (video && video.thumbnail) {
+      track.albumArt = video.thumbnail;
+      if (window.updatePlayerBar) window.updatePlayerBar(track);
+    }
   }
 
   // Start progress updates

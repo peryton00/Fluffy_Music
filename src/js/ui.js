@@ -157,8 +157,12 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
       </div>
       <img class="track-art" src="${track.albumArt || ''}" 
            alt="${track.album}" 
-           onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%231A1A24%22/><text x=%2250%25%22 y=%2255%25%22 text-anchor=%22middle%22 fill=%22%23555568%22 font-size=%2216%22>♪</text></svg>'" 
+           style="${!track.albumArt ? 'display:none' : ''}"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display=''" 
            loading="lazy">
+      <div class="track-art-placeholder" style="${track.albumArt ? 'display:none' : ''}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-music"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
       <div class="track-info">
         <span class="track-name">${escapeHtml(track.name)}</span>
         <span class="track-artist">${escapeHtml(track.artists || track.artist)}</span>
