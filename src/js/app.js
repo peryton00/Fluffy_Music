@@ -7,7 +7,8 @@ import { parseSpotifyLink, fetchSpotifyData, fetchAllTracks } from './spotify.js
 import { initYouTubeAPI, setVolume } from './youtube.js';
 import {
   loadTrack, playPause, nextTrack, prevTrack,
-  toggleShuffle, toggleRepeat, seekToPercent, setIsDraggingProgress
+  toggleShuffle, toggleRepeat, seekToPercent, setIsDraggingProgress,
+  getIsShuffled, getQueue
 } from './player.js';
 import {
   showToast, showModal, renderSavedLinks, renderTrackList,
@@ -168,8 +169,10 @@ async function handleSpotifyLink(url) {
       { ...firstPage, type },
       (shuffle) => {
         if (shuffle) {
-          loadTrack(allLoadedTracks[Math.floor(Math.random() * allLoadedTracks.length)], allLoadedTracks, 0);
-          toggleShuffle();
+          // Explicitly enable shuffle
+          if (!getIsShuffled()) toggleShuffle();
+          const queue = getQueue();
+          loadTrack(queue[Math.floor(Math.random() * queue.length)], queue, 0);
         } else {
           loadTrack(allLoadedTracks[0], allLoadedTracks, 0);
         }

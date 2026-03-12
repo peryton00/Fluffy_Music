@@ -1,4 +1,4 @@
-// src/js/player.js — Music player state and controls
+/* src/js/player.js — Music player state and controls */
 
 import * as YT from './youtube.js';
 import { FM } from './storage.js';
@@ -24,9 +24,23 @@ let isDraggingProgress = false;
  * @param {object} options - { autoPlay: true }
  */
 export async function loadTrack(track, queue = [], index = 0, options = { autoPlay: true }) {
+  const isNewQueue = queue && queue !== currentQueue && queue.length > 0;
+
   currentTrack = track;
   currentQueue = queue;
   currentIndex = index;
+
+  if (isShuffled) {
+    if (isNewQueue) {
+      generateShuffledQueue(track);
+    } else {
+      // If same queue but a specific track was picked, 
+      // we should probably make it the "current" in the existing shuffled queue
+      const sIdx = shuffledQueue.findIndex(t => t.id === track.id);
+      if (sIdx > -1) currentIndex = sIdx;
+      else generateShuffledQueue(track);
+    }
+  }
 
   // Update player bar immediately (don't wait for YouTube)
   if (window.updatePlayerBar) window.updatePlayerBar(track);
@@ -43,7 +57,7 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
     // Update Firestore last played if logged in
     if (isLoggedIn()) {
       const user = getCurrentUser();
-      updateLastPlayedCloud(user.uid, track.spotifyId).catch(() => {});
+      updateLastPlayedCloud(user.uid, track.spotifyId).catch(() => { });
     }
   }
 
@@ -57,9 +71,9 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
     import('./yt-cache.js').then(Cache => {
       Cache.checkCacheSize(protectedIds);
     });
-    
+
     const video = await YT.searchAndPlay(track.name, track.artist, { autoPlay: options.autoPlay });
-    
+
     // Update track artwork from YouTube thumbnail if available
     if (video && video.thumbnail) {
       track.albumArt = video.thumbnail;
@@ -144,19 +158,7 @@ export function toggleShuffle() {
   isShuffled = !isShuffled;
 
   if (isShuffled) {
-    // Fisher-Yates shuffle
-    shuffledQueue = [...currentQueue];
-    for (let i = shuffledQueue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
-    }
-    // Keep current track first
-    const currIdx = shuffledQueue.findIndex((t) => t.id === currentTrack?.id);
-    if (currIdx > -1) {
-      shuffledQueue.splice(currIdx, 1);
-      shuffledQueue.unshift(currentTrack);
-      currentIndex = 0;
-    }
+    generateShuffledQueue(currentTrack);
   }
 
   const shuffleBtn = document.getElementById('btn-shuffle');
@@ -164,6 +166,28 @@ export function toggleShuffle() {
     shuffleBtn.classList.toggle('active', isShuffled);
     shuffleBtn.setAttribute('title', isShuffled ? 'Shuffle: On' : 'Shuffle: Off');
   }
+}
+
+/**
+ * Generates a new shuffled queue starting with the current track.
+ * @param {object} startTrack
+ */
+function generateShuffledQueue(startTrack) {
+  shuffledQueue = [...currentQueue];
+  // Fisher-Yates shuffle
+  for (let i = shuffledQueue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
+  }
+  // Keep start track first
+  if (startTrack) {
+    const currIdx = shuffledQueue.findIndex((t) => t.id === startTrack.id);
+    if (currIdx > -1) {
+      shuffledQueue.splice(currIdx, 1);
+      shuffledQueue.unshift(startTrack);
+    }
+  }
+  currentIndex = 0;
 }
 
 /**
