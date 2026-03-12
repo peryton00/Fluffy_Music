@@ -9,6 +9,7 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
-    "yt-search": "^2.12.1"
+    "yt-search": "^2.12.1",
+    "@vercel/speed-insights": "^1.1.0"
   }
 }
