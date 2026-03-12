@@ -232,11 +232,12 @@ export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
             <i data-lucide="shuffle"></i>
             Shuffle
           </button>
-          <button id="hero-save" class="btn ${isSaved ? 'btn-saved' : 'btn-outlined'} save-btn btn-icon" 
-                  ${isSaved ? 'disabled' : ''}>
-            <i data-lucide="${isSaved ? 'check' : 'bookmark'}"></i>
-            ${isSaved ? 'Saved ✓' : 'Save to Library'}
+          ${!isSaved ? `
+          <button id="hero-save" class="btn btn-outlined save-btn btn-icon">
+            <i data-lucide="bookmark"></i>
+            Save to Library
           </button>
+          ` : ''}
         </div>
       </div>
     </div>

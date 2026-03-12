@@ -226,9 +226,7 @@ async function saveCurrentToLibrary(url, type, data) {
   // Update hero save button
   const saveBtn = document.getElementById('hero-save');
   if (saveBtn) {
-    saveBtn.textContent = 'Saved ✓';
-    saveBtn.classList.add('btn-saved');
-    saveBtn.disabled = true;
+    saveBtn.remove();
   }
 
   renderAndBindSidebar(FM.getSavedLinks());
