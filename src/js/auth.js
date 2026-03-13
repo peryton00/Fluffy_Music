@@ -4,7 +4,7 @@
 import { auth, googleProvider } from './firebase.js';
 import {
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { FM } from './storage.js';
@@ -38,7 +38,7 @@ export function initAuth(onUserChange) {
  */
 export async function loginWithGoogle() {
   try {
-    await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider);
     // Auth state change handler does the rest
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
