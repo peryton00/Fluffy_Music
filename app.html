@@ -49,6 +49,25 @@
             </div>
 
             <div class="nav-actions">
+                <!-- Settings button -->
+                <button id="btn-settings" class="ctrl-btn" aria-label="Playback Settings" title="Playback Settings" style="position:relative;">
+                    <i data-lucide="settings" style="width:18px;height:18px;"></i>
+                </button>
+
+                <!-- Settings Panel -->
+                <div id="settings-panel" role="dialog" aria-label="Playback Settings">
+                    <div class="settings-header">Playback Settings</div>
+                    <div class="settings-section">
+                        <div class="settings-label">Data Mode</div>
+                        <div class="mode-btn-group">
+                            <button class="mode-btn" data-mode-btn="data_saver" aria-label="Data Saver mode">🌿 Data Saver</button>
+                            <button class="mode-btn" data-mode-btn="normal" aria-label="Normal mode">🎵 Normal</button>
+                            <button class="mode-btn" data-mode-btn="standard" aria-label="Standard mode">✨ Standard</button>
+                        </div>
+                        <p id="mode-description" class="mode-desc">Balanced quality and data usage</p>
+                    </div>
+                </div>
+
                 <!-- Not logged in -->
                 <button id="login-btn" class="btn btn-primary btn-icon" aria-label="Sign in with Google">
                     <svg width="16" height="16" viewBox="0 0 24 24">
@@ -83,6 +102,18 @@
 
                 <div class="sidebar-section">
                     <p class="sidebar-section-title">Your Library</p>
+
+                    <!-- Liked Songs entry -->
+                    <div id="sidebar-liked" class="sidebar-item sidebar-liked-item" role="button" tabindex="0"
+                         aria-label="Liked Songs">
+                        <span class="sidebar-liked-icon">♥</span>
+                        <div class="sidebar-item-info">
+                            <span class="sidebar-item-name">Liked Songs</span>
+                            <span class="sidebar-item-meta">Playlist</span>
+                        </div>
+                        <span id="liked-songs-count" class="liked-count-badge" style="display:none;"></span>
+                    </div>
+
                     <div id="saved-links-list" role="list" aria-label="Saved playlists and albums">
                         <!-- Populated by renderSavedLinks() -->
                     </div>

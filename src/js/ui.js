@@ -2,6 +2,7 @@
 // Functions are exported AND registered on window for cross-module access.
 
 import { formatTime } from './player.js';
+import { isLiked, toggleLike, updateAllHeartButtons } from './likes.js';
 
 // ── Toast Notifications ───────────────────────────────────────────────────────
 
@@ -169,6 +170,11 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
       </div>
       <span class="track-album hide-mobile">${escapeHtml(track.album)}</span>
       <span class="track-duration">${formatTime(track.duration)}</span>
+      <button class="like-btn${isLiked(track.id) ? ' liked' : ''}" 
+              data-track-id="${track.id}"
+              aria-label="${isLiked(track.id) ? 'Remove from Liked Songs' : 'Add to Liked Songs'}"
+              title="${isLiked(track.id) ? 'Remove from Liked Songs' : 'Add to Liked Songs'}"
+              >${isLiked(track.id) ? '♥' : '♡'}</button>
     </div>
   `).join('');
 
@@ -176,13 +182,25 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
 
   // Attach click events
   container.querySelectorAll('.track-row').forEach((row) => {
-    const clickHandler = () => {
+    const clickHandler = (e) => {
+      // Don't trigger track play when clicking the like button
+      if (e.target.classList.contains('like-btn')) return;
       const idx = parseInt(row.dataset.index, 10);
       if (onTrackClick) onTrackClick(tracks[idx], tracks, idx);
     };
     row.addEventListener('click', clickHandler);
     row.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); clickHandler(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); clickHandler(e); }
+    });
+  });
+
+  // Attach like button events
+  container.querySelectorAll('.like-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const trackId = btn.dataset.trackId;
+      const idx = tracks.findIndex((t) => String(t.id) === String(trackId));
+      if (idx !== -1) toggleLike(tracks[idx]);
     });
   });
 }
@@ -344,6 +362,30 @@ export function updatePlayerBar(track) {
   if (timeTotal) timeTotal.textContent = formatTime(track.duration);
   if (bar) bar.classList.remove('hidden');
 
+  // Update or create the like button in the player bar
+  const trackInfo = document.querySelector('.player-track-info');
+  if (trackInfo) {
+    let likeBtn = trackInfo.querySelector('.like-btn');
+    if (!likeBtn) {
+      likeBtn = document.createElement('button');
+      likeBtn.className = 'like-btn player-like-btn';
+      likeBtn.addEventListener('click', () => toggleLike(track));
+      trackInfo.appendChild(likeBtn);
+    } else {
+      // Replace listener by cloning
+      const newBtn = likeBtn.cloneNode(false);
+      newBtn.addEventListener('click', () => toggleLike(track));
+      likeBtn.replaceWith(newBtn);
+      likeBtn = newBtn;
+    }
+    const liked = isLiked(track.id);
+    likeBtn.dataset.trackId = track.id;
+    likeBtn.textContent = liked ? '♥' : '♡';
+    likeBtn.title = liked ? 'Remove from Liked Songs' : 'Add to Liked Songs';
+    likeBtn.setAttribute('aria-label', liked ? 'Remove from Liked Songs' : 'Add to Liked Songs');
+    if (liked) likeBtn.classList.add('liked'); else likeBtn.classList.remove('liked');
+  }
+
   document.title = `${track.name} – ${track.artist} | Fluffy Music`;
 }
 
@@ -466,48 +508,65 @@ export function renderHomeView(recentLinks = []) {
 // ── Search Results ────────────────────────────────────────────────────────────
 
 /**
- * Renders YouTube search results as a playable list.
- * @param {Array} tracks - Normalized track objects with videoId
- * @param {Function} onPlay
+ * Renders YouTube search results as a clickable list into a specific container.
+ * @param {Array} results - Raw API result objects {videoId, title, channelName, thumbnail, duration}
+ * @param {string} containerId - ID of the DOM element to render into
+ * @param {Function} onSelect - Called with the selected result object
  */
-export function renderSearchResults(tracks, onPlay) {
-  const container = document.getElementById('main-content');
+export function renderSearchResults(results, containerId, onSelect) {
+  const container = document.getElementById(containerId);
   if (!container) return;
 
-  if (!tracks || tracks.length === 0) {
-    container.innerHTML = `<div class="empty-state"><p>No results found.</p></div>`;
+  if (!results || results.length === 0) {
+    container.innerHTML = `
+      <div class="search-results-wrap">
+        <div class="search-results-header">
+          <h2 class="section-title">Search Results</h2>
+          <p class="search-results-hint">Click a song to play</p>
+        </div>
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <p>No results found</p>
+        </div>
+      </div>`;
     return;
   }
 
+  const rowsHtml = results.map((r, i) => {
+    const dur = r.duration > 0 ? formatTime(r.duration * 1000) : '—';
+    const thumb = r.thumbnail
+      ? `<img class="sr-thumbnail" src="${escapeHtml(r.thumbnail)}" alt="" loading="lazy" onerror="this.textContent='🎵';this.style.cssText='display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-card);'">`
+      : `<div class="sr-thumbnail" style="display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-card);">🎵</div>`;
+    return `
+      <div class="search-result-row" data-index="${i}" role="button" tabindex="0"
+           aria-label="${escapeHtml(r.title)} by ${escapeHtml(r.channelName || '')}">
+        ${thumb}
+        <div class="sr-info">
+          <div class="sr-title">${escapeHtml(r.title)}</div>
+          <div class="sr-channel">${escapeHtml(r.channelName || '')}</div>
+        </div>
+        <div class="sr-duration">${dur}</div>
+        <div class="sr-play-btn" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>`;
+  }).join('');
+
   container.innerHTML = `
-    <div class="search-results">
-      <h2 class="section-title">Search Results</h2>
-      <div class="track-list">
-        ${tracks.map((t, i) => `
-          <div class="track-row" data-index="${i}" role="row" tabindex="0" aria-label="${escapeHtml(t.name)}">
-            <div class="track-num-cell">
-              <span class="track-number">${i + 1}</span>
-              <span class="track-play-icon" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              </span>
-            </div>
-            ${t.thumbnail
-              ? `<img class="track-art" src="${t.thumbnail}" alt="" loading="lazy">`
-              : `<div class="track-art track-art-placeholder"></div>`}
-            <div class="track-info">
-              <span class="track-name">${escapeHtml(t.name)}</span>
-              <span class="track-artist">${escapeHtml(t.channelName || '')}</span>
-            </div>
-            <span class="track-duration">${t.duration ? formatTime(t.duration) : ''}</span>
-          </div>
-        `).join('')}
+    <div class="search-results-wrap">
+      <div class="search-results-header">
+        <h2 class="section-title">Search Results</h2>
+        <p class="search-results-hint">Click a song to play</p>
       </div>
+      <div class="search-results-list">${rowsHtml}</div>
     </div>`;
 
-  container.querySelectorAll('.track-row').forEach((row) => {
+  container.querySelectorAll('.search-result-row').forEach((row) => {
     const handler = () => {
       const idx = parseInt(row.dataset.index, 10);
-      if (onPlay) onPlay(tracks[idx], tracks, idx);
+      if (onSelect) onSelect(results[idx]);
     };
     row.addEventListener('click', handler);
     row.addEventListener('keydown', (e) => { if (e.key === 'Enter') handler(); });

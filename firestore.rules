@@ -9,9 +9,16 @@ service cloud.firestore {
                          && request.auth.uid == userId;
     }
 
+    // Users can only read and write their own liked songs.
+    match /users/{userId}/liked/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
     // Block all other paths
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+

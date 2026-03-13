@@ -20,6 +20,7 @@ import { isLoggedIn, getCurrentUser } from './auth.js';
 /**
  * Loads all saved links for a user from Firestore.
  * Syncs to localStorage and triggers UI re-render.
+ * Also loads liked songs from Firestore.
  * @param {string} uid - Firebase user UID
  * @returns {Array} Array of link objects
  */
@@ -41,6 +42,11 @@ export async function loadUserLibrary(uid) {
     if (window.renderSavedLinks) {
       window.renderSavedLinks(links);
     }
+
+    // Also load liked songs from Firestore (non-blocking)
+    import('./likes.js').then(({ loadLikedFromFirestore }) => {
+      loadLikedFromFirestore(uid).catch(() => {});
+    });
 
     return links;
   } catch (err) {

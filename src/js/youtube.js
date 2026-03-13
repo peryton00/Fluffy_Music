@@ -101,9 +101,17 @@ function onYouTubeIframeAPIReady() {
     events: {
       onReady: () => {
         playerReady = true;
+        // Expose player globally for data-mode.js
+        window.ytPlayer = ytPlayer;
         // Restore saved volume (force 100% on mobile/tablet where slider is often hidden)
         const savedVol = window.innerWidth <= 1024 ? 100 : FM.getVolume();
         ytPlayer.setVolume(savedVol);
+        // Apply saved playback quality
+        try {
+          import('./data-mode.js').then(({ getYTQuality }) => {
+            try { ytPlayer.setPlaybackQuality(getYTQuality()); } catch (_) {}
+          });
+        } catch (_) {}
         // Play/Cue any video that was queued while player was loading
         if (pendingVideoId) {
           if (window._ytLoadMethod === 'cue') {
@@ -347,6 +355,12 @@ export function loadVideo(videoId) {
   currentVideoId = videoId;
   if (playerReady && ytPlayer) {
     ytPlayer.loadVideoById(videoId);
+    // Apply data mode quality setting
+    try {
+      import('./data-mode.js').then(({ getYTQuality }) => {
+        try { ytPlayer.setPlaybackQuality(getYTQuality()); } catch (_) {}
+      });
+    } catch (_) {}
   } else {
     pendingVideoId = videoId;
     // Set internal state to load when ready

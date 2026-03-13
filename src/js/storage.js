@@ -67,4 +67,8 @@ export const FM = {
       return null;
     }
   },
+
+  // ── Data Mode ─────────────────────────────────────────────────────────────
+  getDataMode: () => localStorage.getItem('fm_data_mode') || 'normal',
+  setDataMode: (m) => localStorage.setItem('fm_data_mode', m),
 };

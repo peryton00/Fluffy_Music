@@ -12,9 +12,11 @@ import {
 } from './player.js';
 import {
   showToast, showModal, renderSavedLinks, renderTrackList,
-  renderPlaylistHero, renderHomeView, renderLoadingProgress
+  renderPlaylistHero, renderHomeView, renderLoadingProgress, renderSearchResults
 } from './ui.js';
 import { FM } from './storage.js';
+import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
+import { getDataMode, setDataMode, applyDataMode, getYTQuality } from './data-mode.js';
 
 // ── App State ─────────────────────────────────────────────────────────────────
 let currentPlaylistData = null;
@@ -41,6 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Render home view
   const recentLinks = FM.getSavedLinks().slice(0, 4);
   renderHomeView(recentLinks);
+
+  // 3a. Apply saved data mode immediately
+  applyDataMode(getDataMode());
+
+  // 3b. Update liked songs badge
+  updateLikedCountBadge();
 
   // 4. Restore last played info / playlist session
   const lastPlayed = FM.getLastPlayed();
@@ -239,37 +247,42 @@ async function saveCurrentToLibrary(url, type, data) {
 
 async function searchYouTube(query) {
   try {
+    // 1. Show loading skeleton in main content
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+      mainContent.innerHTML = '<div id="search-results-container"></div>';
+      const { showSkeleton } = await import('./ui.js');
+      showSkeleton('search-results-container', 5);
+    }
+
     const encoded = encodeURIComponent(query);
-    // Try Piped first, fall back to YouTube
     let data = null;
-    let res = await fetch(
-      `/api/search-youtube?q=${encoded}&source=piped`
-    );
+
+    // 2. Try Piped first
+    let res = await fetch(`/api/search-youtube?q=${encoded}&source=piped`);
     if (res.ok) data = await res.json();
 
-    // Fallback order: Invidious -> YouTube API (if not blocked) -> ytSearch (scraper)
+    // 3. Fallback to Invidious
     if (!data || data.error || !data.results?.length) {
       res = await fetch(`/api/search-youtube?q=${encoded}&source=invidious`);
       if (res.ok) data = await res.json();
     }
 
-    // Try YouTube API only if not persistently blocked today
+    // 4. Fallback to YouTube API (if not quota-blocked)
     const quotaExpiry = localStorage.getItem('fm_yt_quota_expiry');
     const isBlocked = quotaExpiry && Date.now() < parseInt(quotaExpiry);
-
     if (!isBlocked && (!data || data.error || !data.results?.length)) {
       res = await fetch(`/api/search-youtube?q=${encoded}&source=youtube`);
       if (res.ok) {
         data = await res.json();
       } else if (res.status === 429) {
-        // Mark as blocked for today
         const midnight = new Date();
         midnight.setHours(24, 0, 0, 0);
         localStorage.setItem('fm_yt_quota_expiry', midnight.getTime().toString());
       }
     }
 
-    // Final free fallback: Scraper
+    // 5. Final fallback: scraper
     if (!data || data.error || !data.results?.length) {
       res = await fetch(`/api/search-youtube?q=${encoded}&source=ytsearch`);
       if (res.ok) data = await res.json();
@@ -277,11 +290,14 @@ async function searchYouTube(query) {
 
     if (!data || data.error || !data.results?.length) {
       showToast('No results found.', 'error');
+      renderHomeView(FM.getSavedLinks().slice(0, 4));
       return;
     }
 
-    // Convert results to internal track format
-    const syntheticQueue = data.results.map(t => ({
+    const results = data.results;
+
+    // 6. Build synthetic queue for playback
+    const syntheticQueue = results.map(t => ({
       id: t.videoId,
       name: t.title,
       artist: t.channelName,
@@ -292,11 +308,18 @@ async function searchYouTube(query) {
       spotifyId: t.videoId,
     }));
 
-    loadTrack(syntheticQueue[0], syntheticQueue, 0);
+    // 7. Render results — user picks which to play (no auto-play)
+    renderSearchResults(
+      results,
+      'search-results-container',
+      (selectedResult) => {
+        const idx = results.indexOf(selectedResult);
+        loadTrack(syntheticQueue[idx], syntheticQueue, idx);
+      }
+    );
 
   } catch (err) {
-    showToast('Search failed. Please try again.',
-      'error');
+    showToast('Search failed. Please try again.', 'error');
   }
 }
 
@@ -306,8 +329,6 @@ function attachEventListeners() {
   // ── Search Bar (top navbar) ──
   const searchInput = document.getElementById('top-search');
   if (searchInput) {
-    // Only search on Enter to save server load and API quota
-
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         clearTimeout(searchDebounceTimer);
@@ -317,7 +338,26 @@ function attachEventListeners() {
         else searchYouTube(val);
       }
     });
+
+    // Also trigger search on search icon click
+    const searchIcon = document.querySelector('.nav-search-icon');
+    if (searchIcon) {
+      searchIcon.style.cursor = 'pointer';
+      searchIcon.addEventListener('click', () => {
+        const val = searchInput.value.trim();
+        if (!val) return;
+        if (parseSpotifyLink(val)) handleSpotifyLink(val);
+        else searchYouTube(val);
+      });
+    }
   }
+
+  // ── Liked Songs Sidebar ──
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#sidebar-liked')) {
+      renderLikedSongsView();
+    }
+  });
 
   // ── Home view events (delegated on document since home-content is replaced) ──
   document.addEventListener('input', (e) => {
@@ -423,6 +463,27 @@ function attachEventListeners() {
     hamburger.addEventListener('click', toggleSidebar);
     overlay.addEventListener('click', toggleSidebar);
   }
+
+  // ── Settings Panel (Data Mode) ──
+  document.getElementById('btn-settings')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById('settings-panel');
+    panel?.classList.toggle('visible');
+    updateModeButtonsUI(getDataMode());
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#settings-panel') && !e.target.closest('#btn-settings')) {
+      document.getElementById('settings-panel')?.classList.remove('visible');
+    }
+  });
+
+  document.querySelectorAll('[data-mode-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setDataMode(btn.dataset.modeBtn);
+      updateModeButtonsUI(btn.dataset.modeBtn);
+    });
+  });
 }
 
 
@@ -532,3 +593,80 @@ function hideOfflineBanner() {
   const banner = document.getElementById('offline-banner');
   if (banner) banner.classList.remove('visible');
 }
+
+// ── Liked Songs View ──────────────────────────────────────────────────────────
+
+function renderLikedSongsView() {
+  const mainContent = document.getElementById('main-content');
+  if (!mainContent) return;
+
+  const liked = getLikedSongs();
+
+  if (liked.length === 0) {
+    mainContent.innerHTML = `
+      <div class="liked-songs-view">
+        <div class="liked-songs-hero">
+          <div class="liked-songs-hero-art">♥</div>
+          <div class="hero-details">
+            <span class="hero-type">PLAYLIST</span>
+            <h1 class="hero-title">Liked Songs</h1>
+            <div class="hero-meta"><span>0 songs</span></div>
+          </div>
+        </div>
+        <div class="empty-state" style="margin-top:48px;">
+          <div style="font-size:48px;margin-bottom:16px;">♡</div>
+          <p>Songs you like will appear here</p>
+          <p class="hint" style="margin-top:8px;color:var(--text-muted);">Hit ♡ on any track to save it</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  mainContent.innerHTML = `
+    <div id="playlist-view">
+      <div id="hero-section">
+        <div class="hero-inner">
+          <div class="hero-art-wrap">
+            <div class="liked-songs-hero-art">♥</div>
+          </div>
+          <div class="hero-details">
+            <span class="hero-type">PLAYLIST</span>
+            <h1 class="hero-title">Liked Songs</h1>
+            <div class="hero-meta"><span>${liked.length} songs</span></div>
+            <div class="hero-actions">
+              <button id="liked-play-all" class="btn btn-primary btn-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Play All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="track-list-container"></div>
+    </div>`;
+
+  renderTrackList(liked, 'track-list-container', (track, queue, idx) => {
+    loadTrack(track, queue, idx);
+  });
+
+  document.getElementById('liked-play-all')?.addEventListener('click', () => {
+    if (liked.length > 0) loadTrack(liked[0], liked, 0);
+  });
+}
+
+// ── Data Mode UI ──────────────────────────────────────────────────────────────
+
+function updateModeButtonsUI(activeMode) {
+  document.querySelectorAll('[data-mode-btn]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.modeBtn === activeMode);
+  });
+
+  // Update description text
+  const desc = document.getElementById('mode-description');
+  if (desc) {
+    import('./data-mode.js').then(({ DATA_MODES }) => {
+      desc.textContent = DATA_MODES[activeMode]?.description || '';
+    });
+  }
+}
+
