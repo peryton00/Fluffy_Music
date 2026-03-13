@@ -7,19 +7,19 @@ export const DATA_MODES = {
   data_saver: {
     label: 'Data Saver 🌿',
     description: 'Lower quality, uses less data',
-    ytQuality: '144p',
+    ytQuality: 'tiny', // 144p
     imageQuality: 'small',
   },
   normal: {
     label: 'Normal 🎵',
     description: 'Balanced quality and data usage',
-    ytQuality: '360p',
+    ytQuality: 'medium', // 360p
     imageQuality: 'normal',
   },
   standard: {
     label: 'Standard ✨',
     description: 'Better quality, uses more data',
-    ytQuality: '720p',
+    ytQuality: 'hd720', // 720p
     imageQuality: 'normal',
   },
 };

@@ -62,13 +62,13 @@ export async function toggleLike(track) {
 export function likeTrack(track) {
   const entry = {
     id: String(track.id),
-    name: track.name || '',
-    artist: track.artist || '',
-    artists: track.artists || track.artist || '',
+    name: track.name || track.title || 'Unknown Track',
+    artist: track.artist || track.channelName || 'Unknown Artist',
+    artists: track.artists || track.artist || track.channelName || 'Unknown Artist',
     album: track.album || '',
-    albumArt: track.albumArt || '',
+    albumArt: track.albumArt || track.thumbnail || '',
     duration: track.duration || 0,
-    spotifyId: track.spotifyId || String(track.id),
+    spotifyId: track.spotifyId || null,
     likedAt: Date.now(),
   };
 

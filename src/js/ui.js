@@ -165,8 +165,8 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-music"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
       </div>
       <div class="track-info">
-        <span class="track-name">${escapeHtml(track.name)}</span>
-        <span class="track-artist">${escapeHtml(track.artists || track.artist)}</span>
+        <span class="track-name">${escapeHtml(track.name || track.title || 'Unknown Track')}</span>
+        <span class="track-artist">${escapeHtml(track.artists || track.artist || track.channelName || 'Unknown Artist')}</span>
       </div>
       <span class="track-album hide-mobile">${escapeHtml(track.album)}</span>
       <span class="track-duration">${formatTime(track.duration)}</span>
@@ -503,74 +503,6 @@ export function renderHomeView(recentLinks = []) {
     </div>`;
 
   if (window.lucide) window.lucide.createIcons();
-}
-
-// ── Search Results ────────────────────────────────────────────────────────────
-
-/**
- * Renders YouTube search results as a clickable list into a specific container.
- * @param {Array} results - Raw API result objects {videoId, title, channelName, thumbnail, duration}
- * @param {string} containerId - ID of the DOM element to render into
- * @param {Function} onSelect - Called with the selected result object
- */
-export function renderSearchResults(results, containerId, onSelect) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  if (!results || results.length === 0) {
-    container.innerHTML = `
-      <div class="search-results-wrap">
-        <div class="search-results-header">
-          <h2 class="section-title">Search Results</h2>
-          <p class="search-results-hint">Click a song to play</p>
-        </div>
-        <div class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <p>No results found</p>
-        </div>
-      </div>`;
-    return;
-  }
-
-  const rowsHtml = results.map((r, i) => {
-    const dur = r.duration > 0 ? formatTime(r.duration * 1000) : '—';
-    const thumb = r.thumbnail
-      ? `<img class="sr-thumbnail" src="${escapeHtml(r.thumbnail)}" alt="" loading="lazy" onerror="this.textContent='🎵';this.style.cssText='display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-card);'">`
-      : `<div class="sr-thumbnail" style="display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-card);">🎵</div>`;
-    return `
-      <div class="search-result-row" data-index="${i}" role="button" tabindex="0"
-           aria-label="${escapeHtml(r.title)} by ${escapeHtml(r.channelName || '')}">
-        ${thumb}
-        <div class="sr-info">
-          <div class="sr-title">${escapeHtml(r.title)}</div>
-          <div class="sr-channel">${escapeHtml(r.channelName || '')}</div>
-        </div>
-        <div class="sr-duration">${dur}</div>
-        <div class="sr-play-btn" aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-      </div>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="search-results-wrap">
-      <div class="search-results-header">
-        <h2 class="section-title">Search Results</h2>
-        <p class="search-results-hint">Click a song to play</p>
-      </div>
-      <div class="search-results-list">${rowsHtml}</div>
-    </div>`;
-
-  container.querySelectorAll('.search-result-row').forEach((row) => {
-    const handler = () => {
-      const idx = parseInt(row.dataset.index, 10);
-      if (onSelect) onSelect(results[idx]);
-    };
-    row.addEventListener('click', handler);
-    row.addEventListener('keydown', (e) => { if (e.key === 'Enter') handler(); });
-  });
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

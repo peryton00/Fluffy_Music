@@ -114,18 +114,30 @@ function onYouTubeIframeAPIReady() {
         } catch (_) {}
         // Play/Cue any video that was queued while player was loading
         if (pendingVideoId) {
-          if (window._ytLoadMethod === 'cue') {
-            ytPlayer.cueVideoById(pendingVideoId);
-          } else {
-            ytPlayer.loadVideoById(pendingVideoId);
-          }
-          pendingVideoId = null;
+          import('./data-mode.js').then(({ getYTQuality }) => {
+            const quality = getYTQuality();
+            if (window._ytLoadMethod === 'cue') {
+              ytPlayer.cueVideoById({ videoId: pendingVideoId, suggestedQuality: quality });
+            } else {
+              ytPlayer.loadVideoById({ videoId: pendingVideoId, suggestedQuality: quality });
+            }
+            pendingVideoId = null;
+          });
         }
       },
       onStateChange: (event) => {
         if (onPlayerStateChangeCallback) {
           onPlayerStateChangeCallback(event.data);
         }
+        
+        // Ensure quality sticks when video actually starts buffering/playing
+        // YT.PlayerState.PLAYING = 1, YT.PlayerState.BUFFERING = 3
+        if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+          import('./data-mode.js').then(({ getYTQuality }) => {
+            try { ytPlayer.setPlaybackQuality(getYTQuality()); } catch (_) {}
+          });
+        }
+
         // YT.PlayerState.ENDED = 0
         if (event.data === window.YT.PlayerState.ENDED) {
           if (onTrackEndedCallback) onTrackEndedCallback();
@@ -354,13 +366,13 @@ function scoreResults(results, trackName, artist) {
 export function loadVideo(videoId) {
   currentVideoId = videoId;
   if (playerReady && ytPlayer) {
-    ytPlayer.loadVideoById(videoId);
-    // Apply data mode quality setting
-    try {
-      import('./data-mode.js').then(({ getYTQuality }) => {
-        try { ytPlayer.setPlaybackQuality(getYTQuality()); } catch (_) {}
+    // Apply data mode quality setting directly on load
+    import('./data-mode.js').then(({ getYTQuality }) => {
+      ytPlayer.loadVideoById({
+        videoId: videoId,
+        suggestedQuality: getYTQuality(),
       });
-    } catch (_) {}
+    }).catch(() => ytPlayer.loadVideoById(videoId));
   } else {
     pendingVideoId = videoId;
     // Set internal state to load when ready
@@ -375,7 +387,12 @@ export function loadVideo(videoId) {
 export function cueVideo(videoId) {
   currentVideoId = videoId;
   if (playerReady && ytPlayer) {
-    ytPlayer.cueVideoById(videoId);
+    import('./data-mode.js').then(({ getYTQuality }) => {
+      ytPlayer.cueVideoById({
+        videoId: videoId,
+        suggestedQuality: getYTQuality(),
+      });
+    }).catch(() => ytPlayer.cueVideoById(videoId));
   } else {
     pendingVideoId = videoId;
     window._ytLoadMethod = 'cue';

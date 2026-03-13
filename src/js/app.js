@@ -12,7 +12,7 @@ import {
 } from './player.js';
 import {
   showToast, showModal, renderSavedLinks, renderTrackList,
-  renderPlaylistHero, renderHomeView, renderLoadingProgress, renderSearchResults
+  renderPlaylistHero, renderHomeView, renderLoadingProgress
 } from './ui.js';
 import { FM } from './storage.js';
 import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
@@ -305,18 +305,24 @@ async function searchYouTube(query) {
       album: 'YouTube Radio',
       albumArt: t.thumbnail || '',
       duration: (t.duration || 0) * 1000,
-      spotifyId: t.videoId,
+      spotifyId: null, // null so YouTube IDs aren't mistakenly synced as Spotify IDs
     }));
 
     // 7. Render results — user picks which to play (no auto-play)
-    renderSearchResults(
-      results,
-      'search-results-container',
-      (selectedResult) => {
-        const idx = results.indexOf(selectedResult);
-        loadTrack(syntheticQueue[idx], syntheticQueue, idx);
-      }
-    );
+    const container = document.getElementById('search-results-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="search-results-wrap">
+          <div class="search-results-header" style="padding: 16px 0;">
+            <h2 class="section-title">Search Results</h2>
+            <p class="search-results-hint">Click a song to play</p>
+          </div>
+          <div id="search-track-list"></div>
+        </div>`;
+      renderTrackList(syntheticQueue, 'search-track-list', (track, queue, idx) => {
+        loadTrack(track, queue, idx);
+      });
+    }
 
   } catch (err) {
     showToast('Search failed. Please try again.', 'error');
