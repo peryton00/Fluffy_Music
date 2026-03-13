@@ -201,3 +201,6 @@ export function updateLikedCountBadge() {
     badge.style.display = count > 0 ? '' : 'none';
   }
 }
+
+// Register on window for cross-module access
+window.updateLikedCountBadge = updateLikedCountBadge;

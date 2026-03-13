@@ -20,6 +20,14 @@ export const FM = {
     );
   },
 
+  resetStorage: () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('fm_')) {
+        localStorage.removeItem(key);
+      }
+    });
+  },
+
   // ── Library (also managed by sync.js) ────────────────────────────────────
   getSavedLinks: () => {
     try {

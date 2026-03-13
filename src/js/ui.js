@@ -156,14 +156,10 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
           <span></span><span></span><span></span>
         </div>
       </div>
-      <img class="track-art" src="${track.albumArt || ''}" 
+      <img class="track-art" src="${track.albumArt || '/src/img/logo.png'}" 
            alt="${track.album}" 
-           style="${!track.albumArt ? 'display:none' : ''}"
-           onerror="this.style.display='none'; this.nextElementSibling.style.display=''" 
+           onerror="this.src='/src/img/logo.png'" 
            loading="lazy">
-      <div class="track-art-placeholder" style="${track.albumArt ? 'display:none' : ''}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-music"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-      </div>
       <div class="track-info">
         <span class="track-name">${escapeHtml(track.name || track.title || 'Unknown Track')}</span>
         <span class="track-artist">${escapeHtml(track.artists || track.artist || track.channelName || 'Unknown Artist')}</span>
@@ -229,9 +225,9 @@ export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
     <div class="hero-inner">
       <div class="hero-art-wrap">
         <img class="hero-art" 
-             src="${data.coverArt || ''}" 
+             src="${data.coverArt || '/src/img/logo.png'}" 
              alt="${escapeHtml(data.name)}"
-             onerror="this.style.background='var(--bg-card)'">
+             onerror="this.src='/src/img/logo.png'">
       </div>
       <div class="hero-details">
         <span class="hero-type">${(data.type || 'playlist').toUpperCase()}</span>
@@ -306,9 +302,9 @@ export function renderSavedLinks(links, onLinkClick, onLinkRemove) {
     <div class="sidebar-item" data-id="${link.spotifyId}" role="button" tabindex="0" 
          aria-label="Play ${escapeHtml(link.name)}">
       <img class="sidebar-art" 
-           src="${link.coverArt || ''}" 
+           src="${link.coverArt || '/src/img/logo.png'}" 
            alt="${escapeHtml(link.name)}"
-           onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><rect width=%2232%22 height=%2232%22 fill=%22%231A1A24%22/></svg>'">
+           onerror="this.src='/src/img/logo.png'">
       <div class="sidebar-item-info">
         <span class="sidebar-item-name">${escapeHtml(link.name)}</span>
         <span class="sidebar-item-meta">${link.trackCount || 0} tracks · ${link.type || ''}</span>
@@ -353,7 +349,11 @@ export function updatePlayerBar(track) {
   const timeTotal = document.getElementById('time-total');
   const bar = document.getElementById('player-bar');
 
-  if (art) { art.src = track.albumArt || ''; art.alt = track.name; }
+  if (art) { 
+    art.src = track.albumArt || '/src/img/logo.png'; 
+    art.alt = track.name; 
+    art.onerror = () => { art.src = '/src/img/logo.png'; };
+  }
   if (name) name.textContent = track.name;
   if (artist) artist.textContent = track.artist;
   if (fill) fill.style.width = '0%';
@@ -464,8 +464,8 @@ export function renderHomeView(recentLinks = []) {
             <div class="recent-card" data-url="${link.url}" data-id="${link.spotifyId}" 
                  role="button" tabindex="0" aria-label="Play ${escapeHtml(link.name)}">
               <div class="recent-art-wrap">
-                <img src="${link.coverArt || ''}" alt="${escapeHtml(link.name)}" class="recent-art"
-                     onerror="this.style.background='var(--bg-card)'">
+                <img src="${link.coverArt || '/src/img/logo.png'}" alt="${escapeHtml(link.name)}" class="recent-art"
+                     onerror="this.src='/src/img/logo.png'">
                 <div class="recent-play-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
                 </div>

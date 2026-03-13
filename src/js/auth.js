@@ -71,7 +71,17 @@ export async function logout() {
 
   try {
     await signOut(auth);
-    FM.clearUser();
+    FM.resetStorage();
+    
+    // Clear UI state
+    if (window.renderSavedLinks) window.renderSavedLinks([]);
+    if (window.updateLikedCountBadge) {
+      // We need to import likes.js or expose it on window
+      import('./likes.js').then(m => m.updateLikedCountBadge());
+    }
+    // Also reset home view to clear recently saved grid
+    if (window.renderHomeView) window.renderHomeView([]);
+    
     if (window.showToast) {
       window.showToast('Signed out successfully.', 'info');
     }
@@ -98,24 +108,12 @@ export function getCurrentUser() {
  * @param {object|null} user
  */
 export function updateAuthUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  const userMenu = document.getElementById('user-menu');
-  const userAvatar = document.getElementById('user-avatar');
-  const userName = document.getElementById('user-name');
   const sidebarLoginCard = document.getElementById('sidebar-login-card');
   const sidebarUserInfo = document.getElementById('sidebar-user-info');
   const sidebarUserAvatar = document.getElementById('sidebar-user-avatar');
   const sidebarUserName = document.getElementById('sidebar-user-name');
 
   if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (userMenu) userMenu.classList.remove('hidden');
-    if (userAvatar && user.photoURL) {
-      userAvatar.src = user.photoURL;
-      userAvatar.alt = user.displayName || 'User';
-    }
-    if (userName) userName.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User';
-
     if (sidebarLoginCard) sidebarLoginCard.classList.add('hidden');
     if (sidebarUserInfo) sidebarUserInfo.classList.remove('hidden');
     if (sidebarUserAvatar && user.photoURL) {
@@ -124,8 +122,6 @@ export function updateAuthUI(user) {
     }
     if (sidebarUserName) sidebarUserName.textContent = user.displayName || 'User';
   } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (userMenu) userMenu.classList.add('hidden');
     if (sidebarLoginCard) sidebarLoginCard.classList.remove('hidden');
     if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden');
   }

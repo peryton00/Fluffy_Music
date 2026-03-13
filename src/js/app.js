@@ -34,10 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuth(async (user) => {
     if (user) {
       await loadUserLibrary(user.uid);
+      // Re-render home view with cloud-synced recent links
+      const recentLinks = FM.getSavedLinks().slice(0, 4);
+      if (document.querySelector('.home-view')) {
+        renderHomeView(recentLinks);
+      }
     } else {
       const links = getLocalLibrary();
       renderAndBindSidebar(links);
+      // Clear home view recent grid if on home
+      if (document.querySelector('.home-view')) {
+        renderHomeView([]);
+      }
     }
+    // Always update liked count badge on auth change
+    updateLikedCountBadge();
   });
 
   // 3. Render home view
@@ -127,6 +138,9 @@ function renderAndBindSidebar(links) {
  */
 async function handleSpotifyLink(url) {
   if (isLoadingSpotify) return;
+
+  // Auto-close sidebar on mobile after selection
+  closeSidebar();
 
   const parsed = parseSpotifyLink(url);
   if (!parsed) {
@@ -408,7 +422,6 @@ function attachEventListeners() {
   });
 
   // ── Auth Buttons ──
-  document.getElementById('login-btn')?.addEventListener('click', loginWithGoogle);
   document.getElementById('sidebar-login-btn')?.addEventListener('click', loginWithGoogle);
   document.getElementById('logout-btn')?.addEventListener('click', logout);
 
@@ -455,41 +468,24 @@ function attachEventListeners() {
 
   // ── Mobile Sidebar ──
   const hamburger = document.getElementById('hamburger');
-  const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
 
-  if (hamburger && sidebar && overlay) {
-    const toggleSidebar = () => {
-      const isOpen = sidebar.classList.toggle('open');
-      hamburger.setAttribute('aria-expanded', isOpen);
-      overlay.style.opacity = isOpen ? '1' : '0';
-      overlay.style.pointerEvents = isOpen ? 'auto' : 'none';
-    };
-
+  if (hamburger && overlay) {
     hamburger.addEventListener('click', toggleSidebar);
     overlay.addEventListener('click', toggleSidebar);
+    document.getElementById('sidebar-close')?.addEventListener('click', toggleSidebar);
   }
 
-  // ── Settings Panel (Data Mode) ──
-  document.getElementById('btn-settings')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const panel = document.getElementById('settings-panel');
-    panel?.classList.toggle('visible');
-    updateModeButtonsUI(getDataMode());
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('#settings-panel') && !e.target.closest('#btn-settings')) {
-      document.getElementById('settings-panel')?.classList.remove('visible');
-    }
-  });
-
+  // ── Playback Quality (Data Mode) ──
   document.querySelectorAll('[data-mode-btn]').forEach((btn) => {
     btn.addEventListener('click', () => {
       setDataMode(btn.dataset.modeBtn);
       updateModeButtonsUI(btn.dataset.modeBtn);
     });
   });
+
+  // Initial UI state for quality buttons
+  updateModeButtonsUI(getDataMode());
 }
 
 
@@ -600,9 +596,40 @@ function hideOfflineBanner() {
   if (banner) banner.classList.remove('visible');
 }
 
+// ── Sidebar Helpers ───────────────────────────────────────────────────────────
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const hamburger = document.getElementById('hamburger');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar || !hamburger || !overlay) return;
+
+  const isOpen = sidebar.classList.toggle('open');
+  hamburger.setAttribute('aria-expanded', isOpen);
+  overlay.style.opacity = isOpen ? '1' : '0';
+  overlay.style.pointerEvents = isOpen ? 'auto' : 'none';
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const hamburger = document.getElementById('hamburger');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar || !hamburger || !overlay) return;
+
+  if (sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+  }
+}
+
 // ── Liked Songs View ──────────────────────────────────────────────────────────
 
 function renderLikedSongsView() {
+  // Auto-close sidebar on mobile
+  closeSidebar();
+
   const mainContent = document.getElementById('main-content');
   if (!mainContent) return;
 
