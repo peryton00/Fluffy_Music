@@ -17,6 +17,8 @@ import {
 import { FM } from './storage.js';
 import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
 import { getDataMode, setDataMode, applyDataMode, getYTQuality } from './data-mode.js';
+import { initCapacitor, triggerHaptic } from './capacitor-bridge.js';
+import { initMediaSession } from './media-session.js';
 
 // ── App State ─────────────────────────────────────────────────────────────────
 let currentPlaylistData = null;
@@ -26,9 +28,15 @@ let searchDebounceTimer = null;
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // 0. Initialize Capacitor native plugins (does nothing on web)
+  await initCapacitor();
+
   // 1. Initialize YouTube IFrame API
   initYouTubeAPI();
+
+  // 1a. Initialize Media Session API (notification bar / lock screen controls)
+  initMediaSession();
 
   // 2. Initialize Firebase Auth listener
   initAuth(async (user) => {
@@ -376,6 +384,10 @@ function attachEventListeners() {
   document.addEventListener('click', (e) => {
     if (e.target.closest('#sidebar-liked')) {
       renderLikedSongsView();
+    }
+    // Haptic feedback on like button clicks (native app only, silent on web)
+    if (e.target.closest('.like-btn')) {
+      triggerHaptic();
     }
   });
 

@@ -4,6 +4,12 @@ import * as YT from './youtube.js';
 import { FM } from './storage.js';
 import { isLoggedIn, getCurrentUser } from './auth.js';
 import { updateLastPlayedCloud } from './sync.js';
+import {
+  updateMediaSession,
+  setPlaybackState,
+  updatePositionState,
+  clearMediaSession
+} from './media-session.js';
 
 let currentTrack = null;
 let currentQueue = [];
@@ -48,6 +54,9 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
 
   // Update document title
   document.title = `${track.name} – ${track.artist} | Fluffy Music`;
+
+  // Update Media Session (notification bar, lock screen, earbuds)
+  updateMediaSession(track);
 
   // Save last played (if autoPlaying, we update storage)
   if (options.autoPlay) {
@@ -300,7 +309,14 @@ YT.onStateChange((state) => {
   // 1 = playing, 2 = paused, 3 = buffering, 5 = cued
   const isPlaying = state === 1 || state === 3;
   setPlayButtonState(isPlaying);
-  if (isPlaying) resumeMusicBars(); else pauseMusicBars();
+  if (isPlaying) {
+    resumeMusicBars();
+    setPlaybackState('playing');
+    updatePositionState();
+  } else {
+    pauseMusicBars();
+    setPlaybackState('paused');
+  }
 });
 
 // Exported getters for app.js

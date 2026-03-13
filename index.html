@@ -9,6 +9,14 @@
         content="Stream any Spotify playlist, album, or song via YouTube — for free. No login, no premium required. Save your library and sync across devices.">
     <meta name="theme-color" content="#6C63FF">
 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fluffy Music">
+    <link rel="apple-touch-icon" href="/src/img/icon-192.png">
+
     <!-- Open Graph -->
     <meta property="og:title" content="Fluffy Music — Stream Any Spotify Playlist for Free">
     <meta property="og:description"
@@ -184,6 +192,18 @@
                 setTimeout(() => inputBox.classList.remove('invalid'), 2000);
             }
         });
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
     </script>
 
 </body>

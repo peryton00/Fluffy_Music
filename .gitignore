@@ -1,3 +1,71 @@
+# ── Environment & Secrets ─────────────────────────────────────────────────────
 .env
+.env.local
+.env.*.local
+.env.production
+
+# ── Vercel ────────────────────────────────────────────────────────────────────
 .vercel
-.env*.local
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ── Capacitor — Android ───────────────────────────────────────────────────────
+android/
+# Uncomment the line above to exclude the entire android/ folder from git.
+# Most teams commit android/ so others can build without running cap add android.
+# If you DO commit android/, at minimum exclude these:
+# android/.gradle/
+# android/app/build/
+# android/build/
+# android/local.properties
+# android/app/release/
+
+# ── Capacitor — iOS ───────────────────────────────────────────────────────────
+ios/
+# Similarly, uncomment to exclude ios/ entirely, or selectively:
+# ios/App/Pods/
+# ios/App/App.xcworkspace/xcuserdata/
+# ios/.xcode.env.local
+
+# ── Android Keystore (NEVER commit this) ──────────────────────────────────────
+*.keystore
+*.jks
+release.keystore
+
+# ── Generated PWA Icons (can be regenerated with npm run generate-icons) ──────
+src/img/icon-72.png
+src/img/icon-96.png
+src/img/icon-128.png
+src/img/icon-144.png
+src/img/icon-152.png
+src/img/icon-192.png
+src/img/icon-384.png
+src/img/icon-512.png
+
+# ── OS Files ──────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── Editor & IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log

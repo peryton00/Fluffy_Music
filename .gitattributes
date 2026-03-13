@@ -1,0 +1,39 @@
+# ── Line Endings ──────────────────────────────────────────────────────────────
+# Normalize line endings to LF on checkout (consistent across Windows/Mac/Linux)
+* text=auto eol=lf
+
+# Force LF for all text files
+*.html    text eol=lf
+*.css     text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.txt     text eol=lf
+*.xml     text eol=lf
+*.svg     text eol=lf
+*.ts      text eol=lf
+
+# ── Binary Files (no line-ending conversion) ──────────────────────────────────
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.mp3     binary
+*.mp4     binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+*.eot     binary
+*.otf     binary
+*.keystore binary
+*.jks     binary
+*.apk     binary
+*.aab     binary
+
+# ── GitHub Linguist — Language detection ──────────────────────────────────────
+# Tell GitHub these are vendor/generated files (won't count toward language stats)
+android/**    linguist-vendored
+ios/**        linguist-vendored
+node_modules/ linguist-vendored

@@ -1,0 +1,59 @@
+{
+  "appId": "com.fluffymusic.app",
+  "appName": "Fluffy Music",
+  "webDir": "www",
+  "server": {
+    "url": "https://fluffy-music.vercel.app",
+    "cleartext": false,
+    "allowNavigation": [
+      "fluffy-music.vercel.app",
+      "*.spotify.com",
+      "*.youtube.com",
+      "*.googleapis.com",
+      "*.firebaseapp.com",
+      "*.firebaseio.com",
+      "*.gstatic.com",
+      "*.scdn.co",
+      "pipedapi.kavin.rocks",
+      "piped-api.garudalinux.org",
+      "api.piped.projectsegfau.lt",
+      "invidious.snopyta.org",
+      "invidious.kavin.rocks",
+      "y.com.sb",
+      "i.scdn.co",
+      "accounts.spotify.com",
+      "api.spotify.com"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#0A0A0F",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "buildOptions": {
+      "keystorePath": "release.keystore",
+      "keystoreAlias": "fluffymusic"
+    }
+  },
+  "ios": {
+    "backgroundColor": "#0A0A0F",
+    "contentInset": "always",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#0A0A0F",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0A0A0F"
+    }
+  }
+}

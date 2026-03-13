@@ -189,3 +189,68 @@ A: The app shows a friendly message and falls back gracefully. Quotas reset ever
 
 **Q: Does it work without Google login?**  
 A: Yes! The library is stored in `localStorage` when not logged in. Google login syncs it to Firestore for cross-device access.
+
+**Q: Can I install it as an app on my phone?**  
+A: Yes! The web version is a fully installable PWA. Open it in Chrome on Android → tap the browser menu → "Add to Home Screen".
+
+**Q: Is there an Android APK / Play Store app?**  
+A: Yes, follow Section 7 below to build one using Capacitor.
+
+---
+
+## 7. Android App (Capacitor)
+
+The project includes full Capacitor integration so you can build a native Android APK.
+See [`CAPACITOR-SETUP.md`](CAPACITOR-SETUP.md) for the full checklist and [`android-setup.md`](android-setup.md) for detailed build steps.
+
+### Quick start
+
+```bash
+# 1. Install all dependencies (including Capacitor + sharp)
+npm install
+
+# 2. Generate PWA icons (required before building)
+npm run generate-icons
+
+# 3. Add the Android platform (first time only)
+npx cap add android
+
+# 4. Sync web assets to Android
+npx cap sync
+
+# 5. Open Android Studio
+npm run cap:android
+```
+
+### How it works
+
+The `capacitor.config.json` points `server.url` to the live Vercel deployment. This means:
+
+| Change type | What to do |
+|-------------|------------|
+| UI / content change | Push to GitHub → Vercel deploys → app updates instantly, **no APK rebuild** |
+| New Capacitor plugin | `npm install` → `npx cap sync` → rebuild in Android Studio |
+
+### Android permissions to add manually
+
+After running `npx cap add android`, open `android/app/src/main/AndroidManifest.xml` and add inside `<manifest>`:
+
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+```
+
+These keep audio playing when the app is backgrounded.
+
+> ⚠️ **Never commit your `.keystore` file.** It's already in `.gitignore`, but treat it like a password — losing it means you can never update your Play Store listing.
+
+---
+
+## 8. Keeping the App Updated
+
+### Web (automatic)
+Push to `main` → Vercel deploys → live at `fluffy-music.vercel.app` ✅
+
+### Android APK
+- **Content changes** → no action needed (app loads from Vercel)
+- **Plugin or config changes** → `npx cap sync` → rebuild APK in Android Studio → upload to Play Store
