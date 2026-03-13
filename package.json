@@ -21,7 +21,6 @@
     "@capacitor/ios": "^6.0.0",
     "@capacitor/splash-screen": "^6.0.0",
     "@capacitor/status-bar": "^6.0.0",
-    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@vercel/speed-insights": "^1.1.0",
     "yt-search": "^2.12.1"
   },
