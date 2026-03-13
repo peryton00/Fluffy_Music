@@ -36,6 +36,7 @@ ios/
 *.keystore
 *.jks
 release.keystore
+keystore.properties
 
 # ── Generated PWA Icons (can be regenerated with npm run generate-icons) ──────
 src/img/icon-72.png
