@@ -6,6 +6,8 @@ import {
   onAuthStateChanged,
   signInWithRedirect,
   signOut,
+  GoogleAuthProvider,
+  signInWithCredential
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { FM } from './storage.js';
 
@@ -32,17 +34,29 @@ export function initAuth(onUserChange) {
   });
 }
 
-/**
- * Opens the Google sign-in popup.
- * onAuthStateChanged handles the rest automatically.
- */
 export async function loginWithGoogle() {
+  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  
   try {
-    await signInWithRedirect(auth, googleProvider);
+    if (isNative) {
+      // Native Google Login via Capawesome Firebase Auth
+      // We use the global Capacitor object to avoid breaking web build/CDN imports
+      const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
+      if (!FirebaseAuthentication) {
+        throw new Error('FirebaseAuthentication plugin not found.');
+      }
+
+      const result = await FirebaseAuthentication.signInWithGoogle();
+      const credential = GoogleAuthProvider.credential(result.idToken);
+      await signInWithCredential(auth, credential);
+    } else {
+      // Standard Web Redirect (Reliable for Web, but fails in WebView)
+      await signInWithRedirect(auth, googleProvider);
+    }
     // Auth state change handler does the rest
   } catch (err) {
-    if (err.code !== 'auth/popup-closed-by-user') {
-      console.error('Google login error:', err.code, err.message);
+    if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'Sign in canceled') {
+      console.error('Google login error:', err.code || err.message, err);
       if (window.showToast) {
         window.showToast('Login failed. Please try again.', 'error');
       }
