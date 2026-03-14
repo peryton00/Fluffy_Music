@@ -12,7 +12,7 @@ import {
 } from './player.js';
 import {
   showToast, showModal, renderSavedLinks, renderTrackList,
-  renderPlaylistHero, renderHomeView, renderLoadingProgress
+  renderPlaylistHero, renderHomeView, renderLoadingProgress, showSkeleton
 } from './ui.js';
 import { FM } from './storage.js';
 import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
@@ -180,7 +180,6 @@ async function handleSpotifyLink(url) {
   }
 
   // Show skeleton track list
-  const { showSkeleton } = await import('./ui.js');
   showSkeleton('track-list-container', 10);
 
   try {
