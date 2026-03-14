@@ -47,7 +47,13 @@ export async function loginWithGoogle() {
       }
 
       const result = await FirebaseAuthentication.signInWithGoogle();
-      const credential = GoogleAuthProvider.credential(result.idToken);
+      console.log('Native Sign-In Result:', result);
+
+      if (!result.credential || !result.credential.idToken) {
+        throw new Error('No ID Token returned from native Google Sign-In.');
+      }
+
+      const credential = GoogleAuthProvider.credential(result.credential.idToken);
       await signInWithCredential(auth, credential);
     } else {
       // Standard Web Redirect (Reliable for Web, but fails in WebView)
