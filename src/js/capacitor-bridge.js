@@ -220,7 +220,7 @@ export async function startForegroundService() {
         id: 1234,
         title: "Fluffy Music is playing",
         body: "Background playback is active",
-        smallIcon: "mipmap/ic_launcher",
+        smallIcon: "ic_music_note",
         importance: 3,
         serviceType: 2, // FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
       });
