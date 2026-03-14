@@ -57,7 +57,8 @@
     },
     "FirebaseAuthentication": {
       "skipNativeAuth": false,
-      "providers": ["google.com"]
+      "providers": ["google.com"],
+      "googleClientId": "701006425286-i225gr7pjaqu0e5ifo4mr83cc0p32gid.apps.googleusercontent.com"
     }
   }
 }

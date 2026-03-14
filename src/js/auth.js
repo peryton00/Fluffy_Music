@@ -56,9 +56,12 @@ export async function loginWithGoogle() {
     // Auth state change handler does the rest
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'Sign in canceled') {
-      console.error('Google login error:', err.code || err.message, err);
+      console.error('Full Google login error object:', err);
+      const errorMsg = err.message || err.code || 'Unknown error';
+      console.error('Google login error message:', errorMsg);
+      
       if (window.showToast) {
-        window.showToast('Login failed. Please try again.', 'error');
+        window.showToast(`Login failed: ${errorMsg}`, 'error');
       }
     }
   }
