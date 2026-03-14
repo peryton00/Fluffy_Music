@@ -172,6 +172,11 @@ export async function updateMusicControls(track, isPlaying) {
       notificationIcon: 'mr_notification',
     });
 
+    // Start secondary foreground service for extra process protection
+    if (isPlaying) {
+      startForegroundService().catch(() => {});
+    }
+
     // The plugin fires control events via bridge.triggerJSEvent() on 'document',
     // NOT via Capacitor's notifyListeners/addListener. Listen to DOM events.
     if (!controlsListenerAttached) {
@@ -217,6 +222,51 @@ export async function destroyMusicControls() {
   }
 }
 
+// ── Foreground Service API (Secondary Safety) ──────────────────────────────────
+
+/**
+ * Starts a secondary foreground service to ensure the process remains in memory.
+ */
+export async function startForegroundService() {
+  if (!isAndroid) return;
+  try {
+    const FS = window.Capacitor?.Plugins?.ForegroundService;
+    if (FS) {
+      // Request permission first (Required for Android 13+)
+      const permission = await FS.requestPermissions();
+      if (permission.display !== 'granted') {
+        console.warn('[Fluffy] Foreground service permission not granted');
+        return;
+      }
+
+      await FS.startForegroundService({
+        id: 1234,
+        title: "Fluffy Music is playing",
+        body: "Background playback is active",
+        smallIcon: "ic_launcher",
+        importance: 3,
+        serviceType: 2, // FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+      });
+      console.log('[Fluffy] Secondary Foreground Service started');
+    }
+  } catch (e) {
+    console.warn('[Fluffy] ForegroundService.start error:', e);
+  }
+}
+
+/**
+ * Stops the secondary foreground service.
+ */
+export async function stopForegroundService() {
+  if (!isAndroid) return;
+  try {
+    const FS = window.Capacitor?.Plugins?.ForegroundService;
+    if (FS) await FS.stopForegroundService();
+  } catch (e) {
+    console.warn('[Fluffy] ForegroundService.stop error:', e);
+  }
+}
+
 // ── Media Button / Action Handler ─────────────────────────────────────────────
 
 function _handleMusicControlAction(action) {
@@ -229,13 +279,16 @@ function _handleMusicControlAction(action) {
       case 'music-controls-play':
         player.playPause();
         updateMusicControlsState(true).catch(() => {});
+        startForegroundService().catch(() => {});
         break;
       case 'music-controls-pause':
         player.playPause();
         updateMusicControlsState(false).catch(() => {});
         break;
       case 'music-controls-destroy':
-        destroyMusicControls().catch(() => {}); break;
+        destroyMusicControls().catch(() => {}); 
+        stopForegroundService().catch(() => {});
+        break;
       case 'music-controls-media-button':
         // TWS earbuds single press
         player.playPause(); break;

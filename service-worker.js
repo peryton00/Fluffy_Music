@@ -6,6 +6,7 @@ const APP_SHELL = [
   '/',
   '/index.html',
   '/app.html',
+  '/src/js/visibility-spoof.js',
   '/src/css/style.css',
   '/src/js/app.js',
   '/src/js/player.js',

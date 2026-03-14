@@ -21,6 +21,7 @@
     "@capacitor/ios": "^6.0.0",
     "@capacitor/splash-screen": "^6.0.0",
     "@capacitor/status-bar": "^6.0.0",
+    "@capawesome-team/capacitor-android-foreground-service": "^6.2.0",
     "@vercel/speed-insights": "^1.1.0",
     "capacitor-music-controls-plugin": "^6.1.0",
     "yt-search": "^2.12.1"
