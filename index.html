@@ -139,7 +139,9 @@
 
     <script>
         // Initialize Lucide icons
-        lucide.createIcons();
+        if (window.lucide) {
+            lucide.createIcons();
+        }
 
         // Spotify URL parser (mirrors backend logic)
         function parseSpotifyLink(url) {

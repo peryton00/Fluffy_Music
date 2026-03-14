@@ -209,7 +209,9 @@
     <!-- ── Initialize Lucide Icons (after DOM ready) ─────────────────────────── -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         });
     </script>
 
