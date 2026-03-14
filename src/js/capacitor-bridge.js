@@ -12,29 +12,6 @@ const isCapacitor = typeof window !== 'undefined' && window.Capacitor !== undefi
 const isAndroid = isCapacitor && window.Capacitor.getPlatform() === 'android';
 const isIOS = isCapacitor && window.Capacitor.getPlatform() === 'ios';
 
-// ── Page Visibility Override ──────────────────────────────────────────────────
-// CRITICAL: YouTube's IFrame API stops playback when it detects document.hidden.
-// We override this globally when running in Capacitor to prevent auto-pause.
-if (isCapacitor) {
-  try {
-    Object.defineProperty(document, 'hidden', {
-      get: () => false,
-      configurable: true
-    });
-    Object.defineProperty(document, 'visibilityState', {
-      get: () => 'visible',
-      configurable: true
-    });
-    // Prevent visibilitychange events from firing 'hidden'
-    window.addEventListener('visibilitychange', (e) => {
-      e.stopImmediatePropagation();
-    }, true);
-  } catch (e) {
-    console.warn('[Fluffy] Visibility override failed:', e);
-  }
-}
-
-
 // ── Music Controls State ───────────────────────────────────────────────────────
 // Plugin is accessed via window.Capacitor.Plugins.CapacitorMusicControls
 // (registered name from the native Android code)

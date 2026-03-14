@@ -32,13 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 0. Initialize Capacitor native plugins (does nothing on web)
   await initCapacitor();
 
-  // 0a. VISIBILITY HACK: Prevent background audio pause in native app
-  if (isRunningInCapacitor()) {
-    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
-    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
-    window.addEventListener('visibilitychange', (e) => e.stopImmediatePropagation(), true);
-  }
-
   // 1. Initialize YouTube IFrame API
   initYouTubeAPI();
 
@@ -280,7 +273,6 @@ async function searchYouTube(query) {
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
       mainContent.innerHTML = '<div id="search-results-container"></div>';
-      const { showSkeleton } = await import('./ui.js');
       showSkeleton('search-results-container', 5);
     }
 
