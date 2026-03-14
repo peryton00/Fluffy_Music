@@ -5,6 +5,9 @@
 import { playPause, nextTrack, prevTrack, seekToPercent } from './player.js';
 import { getCurrentTime, getDuration } from './youtube.js';
 
+let silentAudio = null;
+const silentAudioSrc = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+
 const isSupported = 'mediaSession' in navigator;
 
 /**
@@ -66,6 +69,14 @@ export function initMediaSession() {
       updatePositionState();
     }
   });
+
+  // SILENT AUDIO HACK: Create a silent audio element to "anchor" the media session
+  // This is required on Android to show notifications for iframe-based players (YT).
+  if (!silentAudio) {
+    silentAudio = new Audio(silentAudioSrc);
+    silentAudio.loop = true;
+    silentAudio.volume = 0; // Completely silent
+  }
 }
 
 /**
@@ -116,6 +127,15 @@ export function updateMediaSession(track) {
 export function setPlaybackState(state) {
   if (!isSupported) return;
   navigator.mediaSession.playbackState = state;
+  
+  // Keep silent audio in sync to maintain notification visibility
+  if (silentAudio) {
+    if (state === 'playing') {
+      silentAudio.play().catch(() => {});
+    } else {
+      silentAudio.pause();
+    }
+  }
 }
 
 /**

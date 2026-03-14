@@ -17,7 +17,7 @@ import {
 import { FM } from './storage.js';
 import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
 import { getDataMode, setDataMode, applyDataMode, getYTQuality } from './data-mode.js';
-import { initCapacitor, triggerHaptic } from './capacitor-bridge.js';
+import { initCapacitor, triggerHaptic, isRunningInCapacitor } from './capacitor-bridge.js';
 import { initMediaSession } from './media-session.js';
 
 // ── App State ─────────────────────────────────────────────────────────────────
