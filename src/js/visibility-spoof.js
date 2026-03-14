@@ -119,21 +119,35 @@
       type, listener, options);
   };
 
-  // ── Step 7: Same for window ────────────
+  // ── Step 8: Override hasFocus ──────────────────────────
+  // Always report as focused
 
-  const _originalWindowAddEventListener =
-    window.addEventListener.bind(window);
+  try {
+    Object.defineProperty(document, 'hasFocus', {
+      value: function() { return true; },
+      configurable: true
+    });
+  } catch(e) {}
 
-  window.addEventListener = function(
-    type, listener, options) {
+  // ── Step 9: Block blur and focus events ────────────────
+  // Prevents YouTube from detecting when the window loses focus
 
-    if (type === 'visibilitychange') {
-      return; // silently ignore
-    }
+  window.addEventListener('blur', function(e) { e.stopImmediatePropagation(); }, true);
+  window.addEventListener('focus', function(e) { e.stopImmediatePropagation(); }, true);
 
-    return _originalWindowAddEventListener(
-      type, listener, options);
-  };
+  // ── Step 10: Legacy and Property-style overrides ──────
+  // Support webkit-prefixed versions and property-style listeners
+
+  try {
+    Object.defineProperty(document, 'webkitHidden', { get: function() { return false; }, configurable: true });
+    Object.defineProperty(document, 'webkitVisibilityState', { get: function() { return 'visible'; }, configurable: true });
+    
+    // Nullify existing handler properties to prevent 'leakage'
+    document.onvisibilitychange = null;
+    window.onvisibilitychange = null;
+    window.onblur = null;
+    window.onfocus = null;
+  } catch(e) {}
 
   console.log(
     '[FM] Page Visibility spoof active ✓');
