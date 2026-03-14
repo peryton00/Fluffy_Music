@@ -30,6 +30,9 @@
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": false,
+    "appendUserAgent": "FluffyMusicApp",
+    "overrideUserAgent": null,
+    "initialFocus": true,
     "buildOptions": {
       "keystorePath": "release.keystore",
       "keystoreAlias": "fluffymusic"
@@ -60,5 +63,6 @@
       "providers": ["google.com"],
       "googleClientId": "701006425286-i225gr7pjaqu0e5ifo4mr83cc0p32gid.apps.googleusercontent.com"
     }
-  }
+  },
+  "cordova": {}
 }

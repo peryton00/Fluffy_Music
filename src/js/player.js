@@ -58,6 +58,11 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
   // Update Media Session (notification bar, lock screen, earbuds)
   updateMediaSession(track);
 
+  // Update native music controls notification (Android)
+  import('./capacitor-bridge.js')
+    .then((cb) => cb.updateMusicControls(track, true).catch(() => {}))
+    .catch(() => {});
+
   // Save last played (if autoPlaying, we update storage)
   if (options.autoPlay) {
     FM.setLastPlayed(track);
@@ -313,9 +318,15 @@ YT.onStateChange((state) => {
     resumeMusicBars();
     setPlaybackState('playing');
     updatePositionState();
+    import('./capacitor-bridge.js')
+      .then((cb) => cb.updateMusicControlsState(true).catch(() => {}))
+      .catch(() => {});
   } else {
     pauseMusicBars();
     setPlaybackState('paused');
+    import('./capacitor-bridge.js')
+      .then((cb) => cb.updateMusicControlsState(false).catch(() => {}))
+      .catch(() => {});
   }
 });
 
