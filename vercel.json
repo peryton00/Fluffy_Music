@@ -2,14 +2,15 @@
   "version": 2,
   "buildCommand": "",
   "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/__/auth/(.*)",
+      "destination": "https://fluffy-music-86492.firebaseapp.com/__/auth/$1"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
       "dest": "/api/$1"
     },
     {

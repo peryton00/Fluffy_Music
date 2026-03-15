@@ -21,8 +21,10 @@ export const FM = {
   },
 
   resetStorage: () => {
+    // We keep library data and basic prefs so they are available offline as promised.
+    const keysToKeep = ['fm_saved_links', 'fm_liked_songs', 'fm_volume', 'fm_data_mode'];
     Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('fm_')) {
+      if (key.startsWith('fm_') && !keysToKeep.includes(key)) {
         localStorage.removeItem(key);
       }
     });

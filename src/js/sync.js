@@ -38,11 +38,6 @@ export async function loadUserLibrary(uid) {
     // Sync to localStorage
     FM.setSavedLinks(links);
 
-    // Re-render the sidebar
-    if (window.renderSavedLinks) {
-      window.renderSavedLinks(links);
-    }
-
     // Also load liked songs from Firestore (non-blocking)
     import('./likes.js').then(({ loadLikedFromFirestore }) => {
       loadLikedFromFirestore(uid).catch(() => {});
@@ -152,11 +147,6 @@ export async function saveLink(linkData) {
     return;
   }
 
-  // Re-render sidebar
-  if (window.renderSavedLinks) {
-    window.renderSavedLinks(FM.getSavedLinks());
-  }
-
   if (isLoggedIn()) {
     const user = getCurrentUser();
     await saveToCloud(user.uid, linkData);
@@ -171,11 +161,6 @@ export async function saveLink(linkData) {
  */
 export async function removeLink(spotifyId) {
   removeFromLocal(spotifyId);
-
-  // Re-render sidebar
-  if (window.renderSavedLinks) {
-    window.renderSavedLinks(FM.getSavedLinks());
-  }
 
   if (isLoggedIn()) {
     const user = getCurrentUser();

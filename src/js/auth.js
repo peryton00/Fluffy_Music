@@ -5,6 +5,7 @@ import { auth, googleProvider } from './firebase.js';
 import {
   onAuthStateChanged,
   signInWithRedirect,
+  getRedirectResult,
   signOut,
   GoogleAuthProvider,
   signInWithCredential
@@ -19,6 +20,18 @@ let currentUser = null;
  * @param {Function} onUserChange - callback(user | null)
  */
 export function initAuth(onUserChange) {
+  // Handle redirect result (crucial for web reliability after returning from Google)
+  getRedirectResult(auth).then((result) => {
+    if (result) {
+      console.log('Successfully received redirect result:', result.user.email);
+    } else {
+      console.log('No redirect result found (standard initialization).');
+    }
+  }).catch((err) => {
+    console.error('CRITICAL: Redirect result error observed at breakpoint:', err.code, err.message);
+    if (window.showToast) window.showToast(`Auth error: ${err.code}`, 'error');
+  });
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
@@ -35,7 +48,7 @@ export function initAuth(onUserChange) {
 }
 
 export async function loginWithGoogle() {
-  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  const isNative = !!(window.Capacitor && window.Capacitor.isNative);
   
   try {
     if (isNative) {
@@ -56,7 +69,9 @@ export async function loginWithGoogle() {
       const credential = GoogleAuthProvider.credential(result.credential.idToken);
       await signInWithCredential(auth, credential);
     } else {
-      // Standard Web Redirect (Reliable for Web, but fails in WebView)
+      // Force account picker to prevent stuck states
+      googleProvider.setCustomParameters({ prompt: 'select_account' });
+      // Standard Web Redirect
       await signInWithRedirect(auth, googleProvider);
     }
     // Auth state change handler does the rest
@@ -93,17 +108,22 @@ export async function logout() {
   if (!confirmed) return;
 
   try {
+    const isNative = !!(window.Capacitor && window.Capacitor.isNative);
+    
+    // 1. Sign out from Firebase JS SDK
     await signOut(auth);
+
+    // 2. Sign out from Native Google session to clear account picker state
+    if (isNative) {
+      const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
+      if (FirebaseAuthentication) {
+        await FirebaseAuthentication.signOut();
+      }
+    }
+
     FM.resetStorage();
     
-    // Clear UI state
-    if (window.renderSavedLinks) window.renderSavedLinks([]);
-    if (window.updateLikedCountBadge) {
-      // We need to import likes.js or expose it on window
-      import('./likes.js').then(m => m.updateLikedCountBadge());
-    }
-    // Also reset home view to clear recently saved grid
-    if (window.renderHomeView) window.renderHomeView([]);
+    // UI state will be updated via the onAuthStateChanged listener in app.js
     
     if (window.showToast) {
       window.showToast('Signed out successfully.', 'info');

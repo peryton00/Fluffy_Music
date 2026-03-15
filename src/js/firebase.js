@@ -6,6 +6,9 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
+  indexedDBLocalPersistence,
+  setPersistence,
+  browserLocalPersistence
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {
   getFirestore,
@@ -47,6 +50,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Set persistence to IndexedDB (best for PWAs) but fallback gracefully
+setPersistence(auth, indexedDBLocalPersistence)
+  .catch(() => setPersistence(auth, browserLocalPersistence))
+  .catch((err) => console.error('Auth persistence error:', err));
 
 // Enable offline persistence — allows liked songs and library to work offline
 enableIndexedDbPersistence(db).catch((err) => {
