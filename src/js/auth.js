@@ -4,6 +4,7 @@
 import { auth, googleProvider } from './firebase.js';
 import {
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut,
@@ -71,8 +72,10 @@ export async function loginWithGoogle() {
     } else {
       // Force account picker to prevent stuck states
       googleProvider.setCustomParameters({ prompt: 'select_account' });
-      // Standard Web Redirect
-      await signInWithRedirect(auth, googleProvider);
+      
+      // Use Popup for Web (more reliable on localhost and standard web than Redirect)
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('Web Popup Sign-In Result:', result.user.email);
     }
     // Auth state change handler does the rest
   } catch (err) {
