@@ -7,7 +7,10 @@ import {
   getAuth,
   GoogleAuthProvider,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {
+  getFirestore,
+  enableIndexedDbPersistence
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ─── Firebase Project Configuration ───────────────────────────────────────────
 // Replace these placeholder values with your own Firebase project's config.
@@ -44,6 +47,17 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Enable offline persistence — allows liked songs and library to work offline
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    // Multiple tabs open — persistence only works in one tab at a time
+    console.warn('Firestore persistence unavailable: multiple tabs open');
+  } else if (err.code === 'unimplemented') {
+    // Browser doesn't support persistence
+    console.warn('Firestore persistence not supported in this browser');
+  }
+});
 
 // Request user's email and profile when they log in
 googleProvider.addScope('profile');

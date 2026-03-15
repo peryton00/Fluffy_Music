@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <script src="/src/js/visibility-fixer.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,9 +22,19 @@
     <!-- Open Graph -->
     <meta property="og:title" content="Fluffy Music — Stream Any Spotify Playlist for Free">
     <meta property="og:description"
-        content="Stream any Spotify playlist or album via YouTube. Free. No premium needed.">
+        content="Stream any Spotify playlist or album via YouTube. Free. No premium needed. Save your library and sync across devices.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://fluffymusic.vercel.app">
+    <meta property="og:url" content="https://fluffy-music.vercel.app">
+    <meta property="og:image" content="https://fluffy-music.vercel.app/src/img/icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:site_name" content="Fluffy Music">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Fluffy Music — Free Spotify Playlist Streaming">
+    <meta name="twitter:description" content="Stream any Spotify playlist via YouTube. Free. No premium needed.">
+    <meta name="twitter:image" content="https://fluffy-music.vercel.app/src/img/icon-512.png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -112,10 +123,10 @@
                     </p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🎬</div>
-                    <h3 class="feature-title">Audio & Video Modes</h3>
+                    <div class="feature-icon">❤️</div>
+                    <h3 class="feature-title">Liked Songs</h3>
                     <p class="feature-desc">
-                        Switch between audio-only and full YouTube music video mode instantly with a single click.
+                        Like any track with one tap. Your liked songs are saved and synced across all your devices when signed in with Google.
                     </p>
                 </div>
                 <div class="feature-card">
@@ -123,6 +134,13 @@
                     <h3 class="feature-title">Sync Across Devices</h3>
                     <p class="feature-desc">
                         Sign in with Google to save your library and access it seamlessly from any device.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌿</div>
+                    <h3 class="feature-title">Data Saving Modes</h3>
+                    <p class="feature-desc">
+                        Choose between Data Saver, Normal, and Standard modes to control data usage and playback quality.
                     </p>
                 </div>
             </div>
@@ -152,9 +170,10 @@
         }
 
         // Show "Continue to App" if user has history
-        const hasSaved = localStorage.getItem('fm_saved_links');
+        const savedLinks = JSON.parse(localStorage.getItem('fm_saved_links') || '[]');
         const hasUid = localStorage.getItem('fm_user_uid');
-        if (hasSaved || hasUid) {
+        const hasLiked = JSON.parse(localStorage.getItem('fm_liked_songs') || '[]');
+        if ((savedLinks.length > 0) || hasUid || (hasLiked.length > 0)) {
             document.getElementById('continue-link').style.display = 'inline-flex';
         }
 

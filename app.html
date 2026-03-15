@@ -2,12 +2,20 @@
 <html lang="en">
 
 <head>
+    <script src="/src/js/visibility-fixer.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fluffy Music</title>
     <meta name="description" content="Stream any Spotify playlist, album, or song via YouTube. Free music player.">
     <meta name="theme-color" content="#6C63FF">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Fluffy Music">
+    <meta property="og:description" content="Stream any Spotify playlist or album via YouTube. Free. No premium needed.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fluffy-music.vercel.app/app">
+    <meta property="og:image" content="https://fluffy-music.vercel.app/src/img/icon-512.png">
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -53,7 +61,17 @@
             <input type="search" id="top-search" placeholder="Search any song or paste a Spotify link…"
                 autocomplete="off" spellcheck="false" aria-label="Search songs or paste Spotify link">
         </div>
+        <div id="search-history-dropdown" class="search-history-dropdown hidden">
+            <div class="search-history-header">
+                <span>Recent Searches</span>
+                <button id="clear-search-history" class="search-history-clear">Clear</button>
+            </div>
+            <div id="search-history-list"></div>
+        </div>
 
+        <button id="btn-shortcuts" class="ctrl-btn hide-mobile" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
+            <i data-lucide="keyboard" style="width:16px;height:16px;"></i>
+        </button>
         <button id="hamburger" class="ctrl-btn" aria-label="Open menu" aria-expanded="false">
             <i data-lucide="menu"></i>
         </button>
@@ -80,6 +98,14 @@
                         <span class="sidebar-item-meta">Playlist</span>
                     </div>
                     <span id="liked-songs-count" class="liked-count-badge" style="display:none;"></span>
+                </div>
+
+                <div id="sidebar-recent" class="sidebar-item" role="button" tabindex="0" aria-label="Recently Played">
+                    <span class="sidebar-liked-icon" style="font-size:16px;">🕐</span>
+                    <div class="sidebar-item-info">
+                        <span class="sidebar-item-name">Recently Played</span>
+                        <span class="sidebar-item-meta">History</span>
+                    </div>
                 </div>
 
                 <div id="saved-links-list" role="list" aria-label="Saved playlists and albums">
@@ -188,6 +214,12 @@
 
         <!-- Right: mode toggle + volume -->
         <div class="player-right">
+            <button id="btn-queue" class="ctrl-btn" aria-label="View queue" title="Queue">
+                <i data-lucide="list-music" style="width:16px;height:16px;"></i>
+            </button>
+            <button id="btn-sleep" class="ctrl-btn" aria-label="Sleep timer" title="Sleep timer: Off">
+                <i data-lucide="moon" style="width:16px;height:16px;"></i>
+            </button>
             <div class="volume-wrap" aria-label="Volume control">
                 <i data-lucide="volume-2" class="volume-icon" style="width:16px;height:16px;"></i>
                 <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Volume">
@@ -195,6 +227,35 @@
         </div>
 
     </footer><!-- /player-bar -->
+
+    <!-- Queue Panel -->
+    <div id="queue-panel" class="queue-panel hidden" aria-label="Queue" role="region">
+        <div class="queue-header">
+            <span class="queue-title">Up Next</span>
+            <button id="queue-close" class="ctrl-btn queue-close-btn" aria-label="Close queue">
+                <i data-lucide="x" style="width:16px;height:16px;"></i>
+            </button>
+        </div>
+        <div id="queue-list" class="queue-list"></div>
+    </div>
+
+    <!-- Sleep Timer Panel -->
+    <div id="sleep-panel" class="sleep-panel hidden">
+        <div class="sleep-header">
+            <span>Sleep Timer</span>
+            <button id="sleep-close" class="ctrl-btn" aria-label="Close">
+                <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+        </div>
+        <div class="sleep-options">
+            <button class="sleep-option" data-mins="15">15 min</button>
+            <button class="sleep-option" data-mins="30">30 min</button>
+            <button class="sleep-option" data-mins="45">45 min</button>
+            <button class="sleep-option" data-mins="60">1 hour</button>
+            <button class="sleep-option" data-mins="0">Cancel</button>
+        </div>
+        <p id="sleep-status" class="sleep-status hidden"></p>
+    </div>
 
     <!-- Toast container (appended by JS, but pre-placing it helps) -->
     <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
@@ -223,6 +284,30 @@
         });
       }
     </script>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+        <div class="shortcuts-card">
+            <div class="shortcuts-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button id="shortcuts-close" class="ctrl-btn" aria-label="Close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="shortcuts-grid">
+                <div class="shortcut-row"><kbd>Space</kbd><span>Play / Pause</span></div>
+                <div class="shortcut-row"><kbd>→</kbd><span>Skip forward 10s</span></div>
+                <div class="shortcut-row"><kbd>←</kbd><span>Skip backward 10s</span></div>
+                <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>→</kbd><span>Next track</span></div>
+                <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>←</kbd><span>Previous track</span></div>
+                <div class="shortcut-row"><kbd>↑</kbd><span>Volume up</span></div>
+                <div class="shortcut-row"><kbd>↓</kbd><span>Volume down</span></div>
+                <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>S</kbd><span>Toggle shuffle</span></div>
+                <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>L</kbd><span>Toggle repeat</span></div>
+                <div class="shortcut-row"><kbd>?</kbd><span>Show this guide</span></div>
+            </div>
+        </div>
+    </div>
 
 </body>
 

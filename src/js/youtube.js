@@ -12,9 +12,14 @@ let currentVideoId = null;
 let playerReady = false;
 let pendingVideoId = null;
 let quotaExceeded = false;
+let userIntentionallyPaused = false;
+
 let resultQueue = [];
 let currentResultIndex = 0;
 let currentSearchQuery = '';
+let fadeInterval = null;
+let preloadedNextResult = null;
+let preloadedNextQuery = null;
 
 function isQuotaExceeded() {
   if (quotaExceeded) return true;
@@ -129,7 +134,7 @@ function onYouTubeIframeAPIReady() {
         if (onPlayerStateChangeCallback) {
           onPlayerStateChangeCallback(event.data);
         }
-        
+
         // Ensure quality sticks when video actually starts buffering/playing
         // YT.PlayerState.PLAYING = 1, YT.PlayerState.BUFFERING = 3
         if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
@@ -138,7 +143,20 @@ function onYouTubeIframeAPIReady() {
           });
         }
 
-        // YT.PlayerState.ENDED = 0
+        // ── Background tab resume (Surgical Fail-safe) ────────────
+        // Although visibility-fixer.js should hide backgrounding from YT,
+        // we keep this as a secondary layer if the iframe still manages to pause.
+        if (event.data === window.YT.PlayerState.PAUSED) {
+          if (document._realVisibilityState === 'hidden' && !userIntentionallyPaused) {
+              setTimeout(() => {
+                if (ytPlayer && ytPlayer.getPlayerState() === 2 && !userIntentionallyPaused) {
+                  ytPlayer.playVideo();
+                }
+              }, 300);
+          }
+        }
+
+        // ── Track ended ──────────────────────
         if (event.data === window.YT.PlayerState.ENDED) {
           if (onTrackEndedCallback) onTrackEndedCallback();
         }
@@ -170,18 +188,33 @@ function onYouTubeIframeAPIReady() {
  * @param {object} options - { autoPlay: true }
  */
 export async function searchAndPlay(trackName, artist, options = { autoPlay: true }) {
+  // Set loading state at start of search
+  if (window.setPlayerLoadingState) window.setPlayerLoadingState(true);
+
   // Step 1: Check client-side cache first
   const cached = getFromCache(trackName, artist);
   if (cached) {
     resultQueue = [cached];
     currentResultIndex = 0;
     currentVideoId = cached.videoId;
+    if (window.setPlayerLoadingState) window.setPlayerLoadingState(false);
     if (options.autoPlay) {
       loadVideo(cached.videoId);
     } else {
       cueVideo(cached.videoId);
     }
     return cached;
+  }
+
+  // Step 1.5: Check if this was preloaded
+  const preloaded = consumePreloadedResult(trackName, artist);
+  if (preloaded) {
+    if (window.setPlayerLoadingState) window.setPlayerLoadingState(false);
+    resultQueue = [preloaded];
+    currentResultIndex = 0;
+    currentVideoId = preloaded.videoId;
+    loadVideo(preloaded.videoId);
+    return preloaded;
   }
 
   // Step 2: Build search query
@@ -192,6 +225,7 @@ export async function searchAndPlay(trackName, artist, options = { autoPlay: tru
   const results = await fetchTop15Results(query);
 
   if (!results || results.length === 0) {
+    if (window.setPlayerLoadingState) window.setPlayerLoadingState(false);
     if (window.showToast) {
       window.showToast(
         `Couldn't find "${trackName}", skipping...`,
@@ -211,6 +245,7 @@ export async function searchAndPlay(trackName, artist, options = { autoPlay: tru
   const best = resultQueue[0];
   currentVideoId = best.videoId;
   saveToCache(trackName, artist, best);
+  if (window.setPlayerLoadingState) window.setPlayerLoadingState(false);
   if (options.autoPlay) {
     loadVideo(best.videoId);
   } else {
@@ -234,57 +269,7 @@ export function tryNextResult() {
 async function fetchTop15Results(query) {
   const encoded = encodeURIComponent(query);
 
-  // Try Piped first (via backend proxy)
-  try {
-    const res = await fetch(
-      `/api/search-youtube?q=${encoded}&source=piped`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (!data.error && data.results?.length > 0) {
-        return data.results;
-      }
-    }
-  } catch (e) {
-    console.warn('Piped search failed:', e.message);
-  }
-
-  // Try Invidious (via backend proxy)
-  try {
-    const res = await fetch(
-      `/api/search-youtube?q=${encoded}&source=invidious`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (!data.error && data.results?.length > 0) {
-        return data.results;
-      }
-    }
-  } catch (e) {
-    console.warn('Invidious search failed:', e.message);
-  }
-
-  // Fall back to YouTube Data API v3 if not already exceeded
-  if (!isQuotaExceeded()) {
-    try {
-      const res = await fetch(
-        `/api/search-youtube?q=${encoded}&source=youtube`
-      );
-      if (res.status === 429) {
-        setQuotaExceeded();
-        // Silent transition - don't show toast, try ytsearch next
-      } else if (res.ok) {
-        const data = await res.json();
-        if (!data.error && data.results?.length > 0) {
-          return data.results;
-        }
-      }
-    } catch (e) {
-      console.warn('YouTube API search failed:', e.message);
-    }
-  }
-
-  // Final silent fallback: Free scraper (yt-search)
+  // Primary: Free scraper (yt-search) — most reliable, no quota limits
   try {
     const res = await fetch(
       `/api/search-youtube?q=${encoded}&source=ytsearch`
@@ -296,7 +281,26 @@ async function fetchTop15Results(query) {
       }
     }
   } catch (e) {
-    console.error('Final search fallback failed:', e.message);
+    console.warn('yt-search failed:', e.message);
+  }
+
+  // Fallback: YouTube Data API v3 (has quota limits)
+  if (!isQuotaExceeded()) {
+    try {
+      const res = await fetch(
+        `/api/search-youtube?q=${encoded}&source=youtube`
+      );
+      if (res.status === 429) {
+        setQuotaExceeded();
+      } else if (res.ok) {
+        const data = await res.json();
+        if (!data.error && data.results?.length > 0) {
+          return data.results;
+        }
+      }
+    } catch (e) {
+      console.warn('YouTube API search failed:', e.message);
+    }
   }
 
   return [];
@@ -365,20 +369,74 @@ function scoreResults(results, trackName, artist) {
  */
 export function loadVideo(videoId) {
   currentVideoId = videoId;
+  userIntentionallyPaused = false;
   if (playerReady && ytPlayer) {
-    // Apply data mode quality setting directly on load
-    import('./data-mode.js').then(({ getYTQuality }) => {
-      ytPlayer.loadVideoById({
-        videoId: videoId,
-        suggestedQuality: getYTQuality(),
+    // Only crossfade if a video is already playing
+    const state = ytPlayer.getPlayerState();
+    if (state === 1) {
+      // Playing — crossfade
+      fadeOutAndLoad(videoId);
+    } else {
+      // Apply data mode quality setting directly on load
+      import('./data-mode.js').then(({ getYTQuality }) => {
+        ytPlayer.loadVideoById({
+          videoId: videoId,
+          suggestedQuality: getYTQuality(),
+        });
+      }).catch(() => {
+        ytPlayer.loadVideoById(videoId);
       });
-    }).catch(() => ytPlayer.loadVideoById(videoId));
+    }
   } else {
     pendingVideoId = videoId;
     // Set internal state to load when ready
     window._ytLoadMethod = 'load';
   }
 }
+
+function fadeOutAndLoad(videoId) {
+  if (!playerReady || !ytPlayer) {
+    loadVideo(videoId);
+    return;
+  }
+  const FADE_DURATION = 800;
+  const STEPS = 16;
+  const INTERVAL = FADE_DURATION / STEPS;
+  let step = 0;
+  const startVol = ytPlayer.getVolume();
+
+  clearInterval(fadeInterval);
+  fadeInterval = setInterval(() => {
+    step++;
+    const newVol = startVol * (1 - step / STEPS);
+    ytPlayer.setVolume(Math.max(0, newVol));
+    if (step >= STEPS) {
+      clearInterval(fadeInterval);
+      ytPlayer.loadVideoById(videoId);
+      setTimeout(() => fadeIn(startVol), 300);
+    }
+  }, INTERVAL);
+}
+
+function fadeIn(targetVol) {
+  if (!playerReady || !ytPlayer) return;
+  const FADE_DURATION = 600;
+  const STEPS = 12;
+  const INTERVAL = FADE_DURATION / STEPS;
+  let step = 0;
+
+  clearInterval(fadeInterval);
+  fadeInterval = setInterval(() => {
+    step++;
+    const newVol = targetVol * (step / STEPS);
+    ytPlayer.setVolume(Math.min(targetVol, newVol));
+    if (step >= STEPS) {
+      clearInterval(fadeInterval);
+      ytPlayer.setVolume(targetVol);
+    }
+  }, INTERVAL);
+}
+
 
 /**
  * Cues a video into the YouTube player by ID (pre-loads without playing).
@@ -438,10 +496,12 @@ export function setVolume(level) {
 }
 
 export function play() {
+  userIntentionallyPaused = false;
   if (playerReady && ytPlayer) ytPlayer.playVideo();
 }
 
 export function pause() {
+  userIntentionallyPaused = true;
   if (playerReady && ytPlayer) ytPlayer.pauseVideo();
 }
 
@@ -451,3 +511,58 @@ export function onStateChange(cb) { onPlayerStateChangeCallback = cb; }
 
 /** Expose current mode (always 'audio') */
 export function getMode() { return 'audio'; }
+
+// ── Song Preloading (2E) ──────────────────────────────────────────────────────
+
+/**
+ * Silently pre-searches the next track in the background so it's ready to play.
+ * @param {string} trackName
+ * @param {string} artist
+ */
+export async function preloadNextTrack(trackName, artist) {
+  const query = `${trackName} ${artist}`.toLowerCase();
+  if (preloadedNextQuery === query) return;
+
+  preloadedNextQuery = query;
+  preloadedNextResult = null;
+
+  // Check cache first
+  const cached = getFromCache(trackName, artist);
+  if (cached) {
+    preloadedNextResult = cached;
+    return;
+  }
+
+  // Silently search in background
+  try {
+    const encoded = encodeURIComponent(`${trackName} ${artist} audio`);
+    const res = await fetch(`/api/search-youtube?q=${encoded}&source=ytsearch`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error && data.results?.length > 0) {
+        const scored = scoreResults(data.results, trackName, artist);
+        preloadedNextResult = scored[0];
+        saveToCache(trackName, artist, scored[0]);
+      }
+    }
+  } catch (e) {
+    // Silent failure — preload is best-effort
+  }
+}
+
+/**
+ * Returns the preloaded result if it matches the requested track, then clears it.
+ * @param {string} trackName
+ * @param {string} artist
+ * @returns {object|null}
+ */
+export function consumePreloadedResult(trackName, artist) {
+  const query = `${trackName} ${artist}`.toLowerCase();
+  if (preloadedNextQuery === query && preloadedNextResult) {
+    const result = preloadedNextResult;
+    preloadedNextResult = null;
+    preloadedNextQuery = null;
+    return result;
+  }
+  return null;
+}

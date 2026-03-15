@@ -6,6 +6,9 @@ import { playPause, nextTrack, prevTrack, seekToPercent } from './player.js';
 import { getCurrentTime, getDuration } from './youtube.js';
 
 let silentAudio = null;
+let audioContext = null;
+let silentBufferSource = null;
+let wakeLock = null;
 const silentAudioSrc = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
 
 const isSupported = 'mediaSession' in navigator;
@@ -75,7 +78,41 @@ export function initMediaSession() {
   if (!silentAudio) {
     silentAudio = new Audio(silentAudioSrc);
     silentAudio.loop = true;
-    silentAudio.volume = 0; // Completely silent
+    silentAudio.volume = 0.001; // Near-silent but active session anchor
+  }
+}
+
+/**
+ * Re-attaches or restarts the Web Audio heartbeat to prevent tab suspension.
+ */
+function startAudioHeartbeat() {
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+
+    if (!silentBufferSource) {
+      // Create a 1-second silent buffer
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate, audioContext.sampleRate);
+      silentBufferSource = audioContext.createBufferSource();
+      silentBufferSource.buffer = buffer;
+      silentBufferSource.loop = true;
+      
+      // Connect to destination but at 0 volume (gain node for extra safety)
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.001; 
+      
+      silentBufferSource.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      silentBufferSource.start();
+    }
+  } catch (err) {
+    console.warn('[MediaSession] Heartbeat failed:', err.message);
   }
 }
 
@@ -124,7 +161,7 @@ export function updateMediaSession(track) {
  * Set the playback state shown in the notification shade.
  * @param {'playing' | 'paused' | 'none'} state
  */
-export function setPlaybackState(state) {
+export async function setPlaybackState(state) {
   if (!isSupported) return;
   navigator.mediaSession.playbackState = state;
   
@@ -132,9 +169,36 @@ export function setPlaybackState(state) {
   if (silentAudio) {
     if (state === 'playing') {
       silentAudio.play().catch(() => {});
-    } else {
+      startAudioHeartbeat(); // Start Web Audio heartbeat
+      requestWakeLock();
+    } else if (state === 'none' || state === 'paused') {
+      // Pause silent audio and release wake lock
       silentAudio.pause();
+      releaseWakeLock();
     }
+  }
+}
+
+/** 
+ * Request a Screen Wake Lock to prevent the browser from throttling 
+ * the tab's CPU/Network when in the background.
+ */
+async function requestWakeLock() {
+  if (wakeLock || !('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      wakeLock = null;
+    });
+  } catch (err) {
+    console.warn('[MediaSession] Wake Lock failed:', err.message);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
   }
 }
 

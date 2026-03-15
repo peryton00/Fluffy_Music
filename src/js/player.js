@@ -61,6 +61,7 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
   // Save last played (if autoPlaying, we update storage)
   if (options.autoPlay) {
     FM.setLastPlayed(track);
+    FM.addRecentTrack(track);
     FM.setLastIndex(index);
 
     // Update Firestore last played if logged in
@@ -88,6 +89,18 @@ export async function loadTrack(track, queue = [], index = 0, options = { autoPl
       track.albumArt = video.thumbnail;
       if (window.updatePlayerBar) window.updatePlayerBar(track);
     }
+
+    // Preload next track in background
+    const queueForPreload = isShuffled ? shuffledQueue : currentQueue;
+    const nextPreloadIndex = currentIndex + 1;
+    if (nextPreloadIndex < queueForPreload.length) {
+      const nextTrackObj = queueForPreload[nextPreloadIndex];
+      if (nextTrackObj && nextTrackObj.album !== 'YouTube Radio') {
+        import('./youtube.js').then(YTmod => {
+          YTmod.preloadNextTrack(nextTrackObj.name, nextTrackObj.artist).catch(() => {});
+        }).catch(() => {});
+      }
+    }
   }
 
   // Start progress updates
@@ -110,6 +123,7 @@ export function playPause() {
     YT.play();
     setPlayButtonState(true);
     resumeMusicBars();
+    console.log("Play button clicked");
   }
 }
 
@@ -291,6 +305,7 @@ function setPlayButtonState(isPlaying) {
   btn.innerHTML = `<i data-lucide="${iconName}" style="width:20px;height:20px;"></i>`;
   if (window.lucide) window.lucide.createIcons();
   btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  console.log("Play button state changed to: ", isPlaying);
 }
 
 /** Pauses the music bars animation. */
@@ -313,15 +328,9 @@ YT.onStateChange((state) => {
     resumeMusicBars();
     setPlaybackState('playing');
     updatePositionState();
-    import('./capacitor-bridge.js')
-      .then((cb) => cb.updateMusicControlsState(true).catch(() => {}))
-      .catch(() => {});
   } else {
     pauseMusicBars();
     setPlaybackState('paused');
-    import('./capacitor-bridge.js')
-      .then((cb) => cb.updateMusicControlsState(false).catch(() => {}))
-      .catch(() => {});
   }
 });
 

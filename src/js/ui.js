@@ -161,7 +161,7 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
            onerror="this.src='/src/img/logo.png'" 
            loading="lazy">
       <div class="track-info">
-        <span class="track-name">${escapeHtml(track.name || track.title || 'Unknown Track')}</span>
+        <span class="track-name">${escapeHtml((track.album === 'YouTube Radio' ? cleanYouTubeTitle(track.name) : track.name) || track.title || 'Unknown Track')}</span>
         <span class="track-artist">${escapeHtml(track.artists || track.artist || track.channelName || 'Unknown Artist')}</span>
       </div>
       <span class="track-album hide-mobile">${escapeHtml(track.album)}</span>
@@ -227,7 +227,8 @@ export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
         <img class="hero-art" 
              src="${data.coverArt || '/src/img/logo.png'}" 
              alt="${escapeHtml(data.name)}"
-             onerror="this.src='/src/img/logo.png'">
+             onerror="this.src='/src/img/logo.png'"
+             loading="lazy">
       </div>
       <div class="hero-details">
         <span class="hero-type">${(data.type || 'playlist').toUpperCase()}</span>
@@ -304,7 +305,8 @@ export function renderSavedLinks(links, onLinkClick, onLinkRemove) {
       <img class="sidebar-art" 
            src="${link.coverArt || '/src/img/logo.png'}" 
            alt="${escapeHtml(link.name)}"
-           onerror="this.src='/src/img/logo.png'">
+           onerror="this.src='/src/img/logo.png'"
+           loading="lazy">
       <div class="sidebar-item-info">
         <span class="sidebar-item-name">${escapeHtml(link.name)}</span>
         <span class="sidebar-item-meta">${link.trackCount || 0} tracks · ${link.type || ''}</span>
@@ -355,6 +357,7 @@ export function updatePlayerBar(track) {
     art.onerror = () => { art.src = '/src/img/logo.png'; };
   }
   if (name) name.textContent = track.name;
+  if (name) name.setAttribute('data-original', track.name);
   if (artist) artist.textContent = track.artist;
   if (fill) fill.style.width = '0%';
   if (thumb) thumb.style.left = '0%';
@@ -384,6 +387,44 @@ export function updatePlayerBar(track) {
     likeBtn.title = liked ? 'Remove from Liked Songs' : 'Add to Liked Songs';
     likeBtn.setAttribute('aria-label', liked ? 'Remove from Liked Songs' : 'Add to Liked Songs');
     if (liked) likeBtn.classList.add('liked'); else likeBtn.classList.remove('liked');
+  }
+
+  // Share button (3G)
+  const playerRight = document.querySelector('.player-right');
+  if (playerRight) {
+    let shareBtn = playerRight.querySelector('.share-btn');
+    if (!shareBtn) {
+      shareBtn = document.createElement('button');
+      shareBtn.className = 'ctrl-btn share-btn';
+      shareBtn.setAttribute('aria-label', 'Share');
+      shareBtn.title = 'Share this song';
+      shareBtn.innerHTML = `<i data-lucide="share-2" style="width:15px;height:15px;"></i>`;
+      const volumeWrap = playerRight.querySelector('.volume-wrap') || playerRight.firstChild;
+      playerRight.insertBefore(shareBtn, volumeWrap);
+      if (window.lucide) window.lucide.createIcons();
+    }
+    shareBtn.onclick = async () => {
+      const shareData = {
+        title: 'Fluffy Music',
+        text: `\uD83C\uDFB5 ${track.name} by ${track.artist}`,
+        url: `https://fluffy-music.vercel.app/app.html?q=${encodeURIComponent(track.name + ' ' + track.artist)}`
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(`${shareData.text}\nListen on Fluffy Music: ${shareData.url}`);
+          if (window.showToast) window.showToast('Link copied to clipboard! \uD83D\uDCCB', 'success');
+        }
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(shareData.text);
+            if (window.showToast) window.showToast('Song info copied! \uD83D\uDCCB', 'success');
+          } catch {}
+        }
+      }
+    };
   }
 
   document.title = `${track.name} – ${track.artist} | Fluffy Music`;
@@ -452,7 +493,7 @@ export function renderLoadingProgress(loaded, total) {
  * Renders the home view into main-content.
  * @param {Array} recentLinks - Up to 4 recent saved links
  */
-export function renderHomeView(recentLinks = []) {
+export async function renderHomeView(recentLinks = []) {
   const container = document.getElementById('main-content');
   if (!container) return;
 
@@ -465,7 +506,7 @@ export function renderHomeView(recentLinks = []) {
                  role="button" tabindex="0" aria-label="Play ${escapeHtml(link.name)}">
               <div class="recent-art-wrap">
                 <img src="${link.coverArt || '/src/img/logo.png'}" alt="${escapeHtml(link.name)}" class="recent-art"
-                     onerror="this.src='/src/img/logo.png'">
+                     onerror="this.src='/src/img/logo.png'" loading="lazy">
                 <div class="recent-play-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
                 </div>
@@ -478,8 +519,33 @@ export function renderHomeView(recentLinks = []) {
       </div>`
     : '';
 
+  // Check if new user (for onboarding banner) (2F)
+  const { FM } = await import('./storage.js').catch(() => ({ FM: { getSavedLinks: () => [], } }));
+  const isNewUser =
+    FM.getSavedLinks().length === 0 &&
+    !localStorage.getItem('fm_user_uid') &&
+    !JSON.parse(localStorage.getItem('fm_liked_songs') || '[]').length &&
+    !localStorage.getItem('fm_onboarding_dismissed');
+
+  const onboardingHtml = isNewUser ? `
+    <div class="onboarding-banner" id="onboarding-banner">
+      <button class="onboarding-close" id="onboarding-close" aria-label="Dismiss">×</button>
+      <h2 class="onboarding-title">👋 Welcome to Fluffy Music</h2>
+      <p class="onboarding-desc">Stream any public Spotify playlist, album or song — completely free. Here's how to get started:</p>
+      <div class="onboarding-steps">
+        <div class="onboarding-step"><span class="step-num">1</span><span>Open Spotify and find any playlist or album</span></div>
+        <div class="onboarding-step"><span class="step-num">2</span><span>Tap Share → Copy Link</span></div>
+        <div class="onboarding-step"><span class="step-num">3</span><span>Paste the link above and hit Play</span></div>
+      </div>
+      <div class="onboarding-try">
+        <span>Try this example playlist:</span>
+        <button class="onboarding-try-btn" id="onboarding-try-btn">🎵 Top 50 Global</button>
+      </div>
+    </div>` : '';
+
   container.innerHTML = `
     <div class="home-view">
+      ${onboardingHtml}
       <div class="home-hero">
         <div class="home-glow"></div>
         <h1 class="home-heading">Your Music, <span class="gradient-text">Your Way.</span></h1>
@@ -503,9 +569,41 @@ export function renderHomeView(recentLinks = []) {
     </div>`;
 
   if (window.lucide) window.lucide.createIcons();
+
+  // Onboarding event handlers (2F)
+  document.getElementById('onboarding-close')?.addEventListener('click', () => {
+    document.getElementById('onboarding-banner')?.remove();
+    localStorage.setItem('fm_onboarding_dismissed', '1');
+  });
+  document.getElementById('onboarding-try-btn')?.addEventListener('click', () => {
+    const sampleUrl = 'https://open.spotify.com/playlist/37i9dQZEVXbMDoHDwVN2tF';
+    const input = document.getElementById('home-url-input');
+    if (input) input.value = sampleUrl;
+    if (window._handleSpotifyLink) window._handleSpotifyLink(sampleUrl);
+  });
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+
+function cleanYouTubeTitle(title) {
+  if (!title) return '';
+  return title
+    .replace(/\(official\s*(music\s*)?video\)/gi, '')
+    .replace(/\(official\s*audio\)/gi, '')
+    .replace(/\(official\s*lyric\s*video\)/gi, '')
+    .replace(/\(lyrics\)/gi, '')
+    .replace(/\(lyric\s*video\)/gi, '')
+    .replace(/\[official\s*(music\s*)?video\]/gi, '')
+    .replace(/\[official\s*audio\]/gi, '')
+    .replace(/\[lyrics\]/gi, '')
+    .replace(/\(hd\)/gi, '')
+    .replace(/\(4k\)/gi, '')
+    .replace(/\(\d{4}\)/gi, '')
+    .replace(/\(audio\)/gi, '')
+    .replace(/\bvevo\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -517,9 +615,237 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function escapeHtmlAttr(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;');
+}
+
 // Register on window for cross-module access
 window.showToast = showToast;
 window.showModal = showModal;
 window.renderSavedLinks = (links) => renderSavedLinks(links, window._onLinkClick, window._onLinkRemove);
 window.updatePlayerBar = updatePlayerBar;
 window.highlightCurrentTrack = highlightCurrentTrack;
+
+// ── Player Loading State (1D) ─────────────────────────────────────────────────
+
+export function setPlayerLoadingState(loading) {
+  const name = document.getElementById('player-track-name');
+  const playBtn = document.getElementById('btn-play');
+  if (!name) return;
+  console.log("Play button state changed to: ", loading);
+  if (loading) {
+    name.innerHTML = `<span class="player-loading-text">
+      <span class="player-loading-dot"></span>
+      <span class="player-loading-dot"></span>
+      <span class="player-loading-dot"></span>
+      Loading...
+    </span>`;
+    if (playBtn) playBtn.disabled = true;
+  } else {
+    const original = name.getAttribute('data-original');
+    if (original) name.textContent = original;
+    if (playBtn) playBtn.disabled = false;
+  }
+}
+
+window.setPlayerLoadingState = setPlayerLoadingState;
+
+// ── Recently Played (2A) ──────────────────────────────────────────────────────
+
+export function renderRecentlyPlayed(tracks, onTrackClick) {
+  const container = document.getElementById('main-content');
+  if (!container) return;
+
+  if (!tracks || tracks.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state-full">
+        <div class="empty-icon">🕐</div>
+        <h2>No Recently Played</h2>
+        <p>Songs you play will appear here.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = tracks.map((track, i) => `
+    <div class="track-row" data-index="${i}" data-id="${track.id}"
+         role="row" tabindex="0"
+         aria-label="${escapeHtmlAttr(track.name)} by ${escapeHtmlAttr(track.artist)}">
+      <div class="track-num-cell">
+        <span class="track-number">${i + 1}</span>
+        <span class="track-play-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </span>
+        <div class="music-bars paused" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <img class="track-art" src="${track.albumArt || '/src/img/logo.png'}"
+           alt="${escapeHtmlAttr(track.album || '')}"
+           onerror="this.src='/src/img/logo.png'" loading="lazy">
+      <div class="track-info">
+        <span class="track-name">${escapeHtml(track.name || 'Unknown')}</span>
+        <span class="track-artist">${escapeHtml(track.artist || 'Unknown')}</span>
+      </div>
+      <span class="track-album hide-mobile">${escapeHtml(track.album || '')}</span>
+      <span class="track-duration recent-time" title="Played at">${timeAgo(track.playedAt)}</span>
+      <button class="like-btn${isLiked(track.id) ? ' liked' : ''}" data-track-id="${track.id}"
+              aria-label="${isLiked(track.id) ? 'Remove from Liked Songs' : 'Add to Liked Songs'}">
+        ${isLiked(track.id) ? '\u2665' : '\u2661'}
+      </button>
+    </div>
+  `).join('');
+
+  container.innerHTML = `
+    <div id="playlist-view">
+      <div id="hero-section">
+        <div class="hero-inner">
+          <div class="hero-art-wrap">
+            <div class="liked-songs-hero-art" style="background:linear-gradient(135deg,#1DB954,#0a8a3a);">🕐</div>
+          </div>
+          <div class="hero-details">
+            <span class="hero-type">HISTORY</span>
+            <h1 class="hero-title">Recently Played</h1>
+            <div class="hero-meta"><span>${tracks.length} tracks</span></div>
+            <div class="hero-actions">
+              <button id="recent-play-all" class="btn btn-primary btn-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Play All
+              </button>
+              <button id="recent-clear" class="btn btn-outlined btn-icon">
+                <i data-lucide="trash-2"></i>
+                Clear History
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="track-list-container">
+        <div class="track-list" role="table">${rows}</div>
+      </div>
+    </div>`;
+
+  if (window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll('.track-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.classList.contains('like-btn')) return;
+      const idx = parseInt(row.dataset.index, 10);
+      if (onTrackClick) onTrackClick(tracks[idx], tracks, idx);
+    });
+  });
+
+  container.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.trackId;
+      const idx = tracks.findIndex(t => String(t.id) === String(id));
+      if (idx !== -1) toggleLike(tracks[idx]);
+    });
+  });
+
+  document.getElementById('recent-play-all')?.addEventListener('click', () => {
+    if (tracks[0] && onTrackClick) onTrackClick(tracks[0], tracks, 0);
+  });
+
+  document.getElementById('recent-clear')?.addEventListener('click', () => {
+    if (window.showModal) {
+      window.showModal('Clear History', 'Remove all recently played tracks?', () => {
+        localStorage.removeItem('fm_recent_tracks');
+        renderRecentlyPlayed([], onTrackClick);
+        if (window.showToast) window.showToast('History cleared', 'info');
+      });
+    }
+  });
+}
+
+function timeAgo(timestamp) {
+  if (!timestamp) return '';
+  const diff = Date.now() - timestamp;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+window.renderRecentlyPlayed = (tracks, cb) => renderRecentlyPlayed(tracks, cb);
+
+// ── Queue Panel (2C) ──────────────────────────────────────────────────────────
+
+export function renderQueuePanel(queue, currentIndex, onTrackClick) {
+  const panel = document.getElementById('queue-panel');
+  const list = document.getElementById('queue-list');
+  if (!panel || !list) return;
+
+  if (!queue || queue.length === 0) {
+    list.innerHTML = `
+      <div class="queue-empty">
+        <p>No tracks in queue.</p>
+        <p class="hint">Load a playlist to start a queue.</p>
+      </div>`;
+    return;
+  }
+
+  const upcoming = queue.slice(currentIndex);
+  const previous = queue.slice(0, currentIndex);
+  let html = '';
+
+  if (upcoming.length > 0) {
+    html += `<p class="queue-section-label">Now &amp; Up Next</p>`;
+    html += upcoming.map((track, i) => {
+      const realIdx = currentIndex + i;
+      const isCurrent = i === 0;
+      return `
+        <div class="queue-item${isCurrent ? ' queue-current' : ''}" data-index="${realIdx}" role="button" tabindex="0">
+          <img class="queue-art" src="${track.albumArt || '/src/img/logo.png'}" alt=""
+               onerror="this.src='/src/img/logo.png'" loading="lazy">
+          <div class="queue-info">
+            <span class="queue-track-name">${escapeHtml(track.name || 'Unknown')}</span>
+            <span class="queue-track-artist">${escapeHtml(track.artist || 'Unknown')}</span>
+          </div>
+          ${isCurrent
+            ? `<span class="queue-playing-badge">Playing</span>`
+            : `<span class="queue-duration">${formatTime(track.duration)}</span>`
+          }
+        </div>`;
+    }).join('');
+  }
+
+  if (previous.length > 0) {
+    html += `<p class="queue-section-label queue-history-label">Previously Played</p>`;
+    html += [...previous].reverse().map((track, i) => {
+      const realIdx = currentIndex - i - 1;
+      return `
+        <div class="queue-item queue-prev" data-index="${realIdx}" role="button" tabindex="0">
+          <img class="queue-art" src="${track.albumArt || '/src/img/logo.png'}" alt=""
+               onerror="this.src='/src/img/logo.png'" loading="lazy">
+          <div class="queue-info">
+            <span class="queue-track-name">${escapeHtml(track.name || 'Unknown')}</span>
+            <span class="queue-track-artist">${escapeHtml(track.artist || 'Unknown')}</span>
+          </div>
+          <span class="queue-duration">${formatTime(track.duration)}</span>
+        </div>`;
+    }).join('');
+  }
+
+  list.innerHTML = html;
+
+  const currentItem = list.querySelector('.queue-current');
+  if (currentItem) setTimeout(() => currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+
+  list.querySelectorAll('.queue-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.index, 10);
+      if (onTrackClick && queue[idx]) onTrackClick(queue[idx], queue, idx);
+      panel.classList.add('hidden');
+    });
+    item.addEventListener('keydown', e => { if (e.key === 'Enter') item.click(); });
+  });
+}
+
+window.renderQueuePanel = renderQueuePanel;

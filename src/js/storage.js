@@ -79,4 +79,38 @@ export const FM = {
   // ── Data Mode ─────────────────────────────────────────────────────────────
   getDataMode: () => localStorage.getItem('fm_data_mode') || 'normal',
   setDataMode: (m) => localStorage.setItem('fm_data_mode', m),
+
+  // ── Recently Played Tracks (2A) ────────────────────────────────────────────
+  getRecentTracks: () => {
+    try {
+      return JSON.parse(localStorage.getItem('fm_recent_tracks') || '[]');
+    } catch { return []; }
+  },
+  addRecentTrack: (track) => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('fm_recent_tracks') || '[]');
+      const filtered = recent.filter(t => t.id !== track.id);
+      const updated = [{ ...track, playedAt: Date.now() }, ...filtered].slice(0, 20);
+      localStorage.setItem('fm_recent_tracks', JSON.stringify(updated));
+    } catch (e) {}
+  },
+
+  // ── Search History (2B) ───────────────────────────────────────────────────
+  getSearchHistory: () => {
+    try {
+      return JSON.parse(localStorage.getItem('fm_search_history') || '[]');
+    } catch { return []; }
+  },
+  addSearchHistory: (query) => {
+    if (!query || query.trim().length < 2) return;
+    try {
+      const history = JSON.parse(localStorage.getItem('fm_search_history') || '[]');
+      const filtered = history.filter(q => q !== query.trim());
+      const updated = [query.trim(), ...filtered].slice(0, 10);
+      localStorage.setItem('fm_search_history', JSON.stringify(updated));
+    } catch (e) {}
+  },
+  clearSearchHistory: () => {
+    localStorage.removeItem('fm_search_history');
+  },
 };
