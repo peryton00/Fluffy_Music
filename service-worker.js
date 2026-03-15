@@ -1,25 +1,19 @@
 // service-worker.js — Fluffy Music PWA Service Worker
-const CACHE_NAME = 'fluffy-music-v6';
+const CACHE_NAME = 'fluffy-music-v4';
 const APP_SHELL = [
   '/',
-  '/app',
   '/index.html',
   '/app.html',
   '/src/css/style.css',
-  '/src/css/landing.css',
   '/src/js/visibility-fixer.js',
   '/src/js/app.js',
   '/src/js/player.js',
   '/src/js/youtube.js',
-  '/src/js/yt-cache.js',
   '/src/js/storage.js',
   '/src/js/auth.js',
-  '/src/js/firebase.js',
   '/src/js/sync.js',
   '/src/js/spotify.js',
   '/src/js/ui.js',
-  '/src/js/likes.js',
-  '/src/js/data-mode.js',
   '/src/js/media-session.js',
   '/src/img/icon.png',
   '/src/img/icon-192.png',
