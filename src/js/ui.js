@@ -209,8 +209,9 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
  * @param {Function} onPlayAll
  * @param {Function} onSave
  * @param {boolean} isSaved
+ * @param {Function} onRefresh
  */
-export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
+export function renderPlaylistHero(data, onPlayAll, onSave, isSaved, onRefresh) {
   const container = document.getElementById('hero-section');
   if (!container) return;
 
@@ -247,6 +248,9 @@ export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
             <i data-lucide="shuffle"></i>
             Shuffle
           </button>
+          <button id="hero-refresh" class="btn btn-outlined btn-icon" title="Refresh playlist">
+            <i data-lucide="refresh-cw"></i>
+          </button>
           ${!isSaved ? `
           <button id="hero-save" class="btn btn-outlined save-btn btn-icon">
             <i data-lucide="bookmark"></i>
@@ -270,6 +274,10 @@ export function renderPlaylistHero(data, onPlayAll, onSave, isSaved) {
 
   document.getElementById('hero-save')?.addEventListener('click', () => {
     if (onSave) onSave();
+  });
+
+  document.getElementById('hero-refresh')?.addEventListener('click', () => {
+    if (onRefresh) onRefresh();
   });
 }
 
@@ -328,6 +336,91 @@ export function renderSavedLinks(links, onLinkClick, onLinkRemove) {
   });
 
   container.querySelectorAll('.sidebar-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (onLinkRemove) onLinkRemove(btn.dataset.id);
+    });
+  });
+}
+
+/**
+ * Renders the saved library links into main-content (used for mobile Library tab).
+ * @param {Array} links
+ * @param {Function} onLinkClick
+ * @param {Function} onLinkRemove
+ * @param {Function} onLikedClick
+ */
+export function renderMobileLibraryView(links, onLinkClick, onLinkRemove, onLikedClick) {
+  const container = document.getElementById('main-content');
+  if (!container) return;
+
+  const likedSongs = JSON.parse(localStorage.getItem('fm_liked_songs') || '[]');
+  const likedCount = likedSongs.length;
+
+  if ((!links || links.length === 0) && likedCount === 0) {
+    container.innerHTML = `
+      <div class="empty-state-full" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 20px;">
+        <svg fill="none" stroke="var(--text-muted)" stroke-width="1.5" width="48" height="48" viewBox="0 0 24 24" style="margin-bottom:16px;">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+        <h2 style="font-size:20px;margin-bottom:8px;">Your Library is Empty</h2>
+        <p style="color:var(--text-muted);">Paste a Spotify link on the Home tab and like some songs to add to your library.</p>
+      </div>`;
+    return;
+  }
+
+  const likedHtml = `
+    <div class="track-row liked-songs-mobile-row" role="button" tabindex="0" style="grid-template-columns: 48px 1fr auto; padding: 12px; gap: 16px; align-items: center; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;">
+      <div style="width: 48px; height: 48px; border-radius: 4px; background: linear-gradient(135deg, rgba(69,10,245,0.8), rgba(196,239,217,0.8)); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">♥</div>
+      <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden;">
+        <span style="font-size: 15px; font-weight: 500; font-family: inherit; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Liked Songs</span>
+        <span style="font-size: 13px; color: var(--text-muted);">${likedCount} tracks</span>
+      </div>
+      <div style="width: 34px"></div>
+    </div>
+  `;
+
+  const listHtml = (links || []).map((link) => `
+    <div class="track-row link-row" data-id="${link.spotifyId}" role="button" tabindex="0" style="grid-template-columns: 48px 1fr auto; padding: 12px; gap: 16px; align-items: center; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;">
+      <img src="${link.coverArt || '/src/img/logo.png'}" alt="${escapeHtml(link.name)}" onerror="this.src='/src/img/logo.png'" loading="lazy" style="width: 48px; height: 48px; border-radius: 4px; object-fit: cover;">
+      <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden;">
+        <span style="font-size: 15px; font-weight: 500; font-family: inherit; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(link.name)}</span>
+        <span style="font-size: 13px; color: var(--text-muted);">${link.trackCount || 0} tracks · ${link.type || 'Playlist'}</span>
+      </div>
+      <button class="mobile-lib-remove-btn" data-id="${link.spotifyId}" aria-label="Remove" style="background:none; border:none; color: var(--text-muted); padding: 8px; font-size: 18px; cursor: pointer;">×</button>
+    </div>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="mobile-library-view" style="padding-bottom: 120px;">
+      <div class="home-section" style="padding: 24px 16px;">
+        <h2 class="section-title" style="font-size: 28px; font-weight: 700; margin-bottom: 24px;">Your Library</h2>
+        <div class="mobile-links-list" style="display: flex; flex-direction: column;">
+          ${likedHtml}
+          ${listHtml}
+        </div>
+      </div>
+    </div>`;
+
+  const likedRow = container.querySelector('.liked-songs-mobile-row');
+  if (likedRow) {
+    likedRow.addEventListener('click', () => {
+      if (onLikedClick) onLikedClick();
+    });
+  }
+
+  container.querySelectorAll('.link-row').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      // Don't trigger if click was on remove button
+      if (e.target.closest('.mobile-lib-remove-btn')) return;
+      const link = links.find((l) => l.spotifyId === item.dataset.id);
+      if (link && onLinkClick) onLinkClick(link);
+    });
+  });
+
+  container.querySelectorAll('.mobile-lib-remove-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onLinkRemove) onLinkRemove(btn.dataset.id);
@@ -404,10 +497,21 @@ export function updatePlayerBar(track) {
       if (window.lucide) window.lucide.createIcons();
     }
     shareBtn.onclick = async () => {
+      // Clean YouTube titles for better sharing
+      const isYTRadio =
+        track.album === 'YouTube Radio';
+      const cleanName = isYTRadio
+        ? cleanYouTubeTitle(track.name)
+        : track.name;
+      const shareQuery = isYTRadio
+        ? cleanName
+        : `${track.name} ${track.artist}`;
+
       const shareData = {
         title: 'Fluffy Music',
-        text: `\uD83C\uDFB5 ${track.name} by ${track.artist}`,
-        url: `https://fluffy-music.vercel.app/app.html?q=${encodeURIComponent(track.name + ' ' + track.artist)}`
+        text: `\uD83C\uDFB5 ${cleanName} by ${track.artist}`,
+        url: `https://fluffy-music.vercel.app/` +
+          `app.html?q=${encodeURIComponent(shareQuery)}`
       };
       try {
         if (navigator.share) {
@@ -486,6 +590,131 @@ export function renderLoadingProgress(loaded, total) {
     setTimeout(() => el.remove(), 1000);
   }
 }
+
+// ── Lyrics Panel (Update 4) ───────────────────────────────────────────────────
+
+/**
+ * Renders the lyrics panel in various states.
+ * @param {'loading'|'instrumental'|'not_found'|'plain'|'synced'} state
+ * @param {string|Array|null} lyricsData
+ * @param {string} trackName
+ */
+export function renderLyricsPanel(
+  state, lyricsData, trackName) {
+
+  const panel =
+    document.getElementById('lyrics-panel');
+  if (!panel) return;
+
+  if (state === 'loading') {
+    panel.innerHTML = `
+      <div class="lyrics-loading">
+        <div class="lyrics-spinner"></div>
+        <p>Finding lyrics...</p>
+      </div>`;
+    return;
+  }
+
+  if (state === 'instrumental') {
+    panel.innerHTML = `
+      <div class="lyrics-empty">
+        <div class="lyrics-empty-icon">🎵</div>
+        <p class="lyrics-empty-title">
+          Instrumental Track
+        </p>
+        <p class="lyrics-empty-sub">
+          This track has no lyrics.
+        </p>
+      </div>`;
+    return;
+  }
+
+  if (state === 'not_found') {
+    panel.innerHTML = `
+      <div class="lyrics-empty">
+        <div class="lyrics-empty-icon">🎤</div>
+        <p class="lyrics-empty-title">
+          No Lyrics Found
+        </p>
+        <p class="lyrics-empty-sub">
+          We couldn't find lyrics for
+          "${escapeHtml(trackName || 'this song')}".
+        </p>
+      </div>`;
+    return;
+  }
+
+  if (state === 'plain') {
+    const lines = (lyricsData || '')
+      .split('\n')
+      .map(l => l.trim());
+
+    const html = lines.map(line =>
+      line.length > 0
+        ? `<p class="lyric-line">
+            ${escapeHtml(line)}
+          </p>`
+        : `<p class="lyric-spacer"></p>`
+    ).join('');
+
+    panel.innerHTML =
+      `<div class="lyrics-plain">${html}</div>`;
+    return;
+  }
+
+  if (state === 'synced') {
+    const lines = lyricsData || [];
+    const html = lines.map((line, i) =>
+      `<p class="lyric-line lyric-synced-line"
+        data-index="${i}"
+        data-time="${line.timeMs}">
+        ${escapeHtml(line.text)}
+      </p>`
+    ).join('');
+
+    panel.innerHTML =
+      `<div class="lyrics-synced">${html}</div>`;
+    return;
+  }
+}
+
+/**
+ * Highlights the active synced lyric line and scrolls it into view.
+ * @param {number} index
+ */
+export function highlightSyncedLine(index) {
+  const panel = document.getElementById('lyrics-panel');
+  if (!panel) return;
+
+  panel.querySelectorAll('.lyric-synced-line').forEach((el, i) => {
+    const diff = Math.abs(i - index);
+    el.classList.toggle('lyric-active', i === index);
+    el.classList.toggle('lyric-near', diff === 1);
+    // Spotify-style opacity and size by distance
+    if (i === index) {
+      el.style.opacity = '1';
+      el.style.fontSize = '26px';
+    } else if (diff === 1) {
+      el.style.opacity = '0.5';
+      el.style.fontSize = '22px';
+    } else if (diff === 2) {
+      el.style.opacity = '0.35';
+      el.style.fontSize = '20px';
+    } else {
+      el.style.opacity = '0.2';
+      el.style.fontSize = '18px';
+    }
+  });
+
+  const active = panel.querySelector('.lyric-active');
+  if (active) {
+    active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// Register lyrics functions on window
+window.renderLyricsPanel = renderLyricsPanel;
+window.highlightSyncedLine = highlightSyncedLine;
 
 // ── Home View ─────────────────────────────────────────────────────────────────
 
@@ -777,9 +1006,9 @@ window.renderRecentlyPlayed = (tracks, cb) => renderRecentlyPlayed(tracks, cb);
 
 // ── Queue Panel (2C) ──────────────────────────────────────────────────────────
 
-export function renderQueuePanel(queue, currentIndex, onTrackClick) {
+export function renderQueuePanel(queue, currentIndex, onTrackClick, listId = 'mobile-queue-list') {
   const panel = document.getElementById('queue-panel');
-  const list = document.getElementById('queue-list');
+  const list = document.getElementById(listId) || document.getElementById('queue-list');
   if (!panel || !list) return;
 
   if (!queue || queue.length === 0) {
@@ -849,3 +1078,4 @@ export function renderQueuePanel(queue, currentIndex, onTrackClick) {
 }
 
 window.renderQueuePanel = renderQueuePanel;
+window.renderMobileLibraryView = renderMobileLibraryView;

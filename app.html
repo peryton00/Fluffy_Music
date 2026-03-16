@@ -47,19 +47,22 @@
     <link rel="stylesheet" href="/src/css/style.css">
 </head>
 
-<body id="app-shell">
+<body id="app-shell" data-mode="normal">
 
-    <!-- ── Top Navbar ──────────────────────────────────────────────────────── -->
+    <!-- ══ TOP NAV ══════════════════════════════════════════════════════════════ -->
     <nav id="top-nav" aria-label="Main navigation">
         <a href="/" class="nav-logo" aria-label="Fluffy Music home">
             <img src="/src/img/icon.png" alt="Fluffy Music Icon" width="24" height="24" class="nav-logo-img">
             <span class="nav-logo-text">Fluffy Music</span>
         </a>
 
-        <div class="nav-search-wrap">
+        <!-- Search bar (tablet + desktop only, hidden on mobile via CSS) -->
+        <div class="nav-search-wrap desktop-search">
             <i data-lucide="search" class="nav-search-icon" style="width:16px;height:16px;"></i>
-            <input type="search" id="top-search" placeholder="Search any song or paste a Spotify link…"
-                autocomplete="off" spellcheck="false" aria-label="Search songs or paste Spotify link">
+            <input type="search" id="top-search"
+                placeholder="Search songs or paste Spotify link…"
+                autocomplete="off" spellcheck="false"
+                aria-label="Search songs or paste Spotify link">
         </div>
         <div id="search-history-dropdown" class="search-history-dropdown hidden">
             <div class="search-history-header">
@@ -69,30 +72,49 @@
             <div id="search-history-list"></div>
         </div>
 
-        <button id="btn-shortcuts" class="ctrl-btn hide-mobile" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
-            <i data-lucide="keyboard" style="width:16px;height:16px;"></i>
-        </button>
-        <button id="hamburger" class="ctrl-btn" aria-label="Open menu" aria-expanded="false">
-            <i data-lucide="menu"></i>
-        </button>
+        <!-- Right side actions -->
+        <div class="nav-actions">
+            <button id="btn-shortcuts" class="ctrl-btn desktop-only" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
+                <i data-lucide="keyboard" style="width:16px;height:16px;"></i>
+            </button>
+            <!-- User avatar (shown when logged in) -->
+            <div id="nav-user" class="nav-user hidden">
+                <img id="nav-avatar" src="" alt="" width="28" height="28" class="nav-avatar">
+            </div>
+            <!-- Hamburger for mobile sidebar toggle -->
+            <button id="hamburger" class="ctrl-btn mobile-only" aria-label="Open menu" aria-expanded="false">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
     </nav>
 
-    <!-- ── Body Wrap ───────────────────────────────────────────────────────── -->
-    <div id="body-wrap">
+    <!-- ══ APP BODY ══════════════════════════════════════════════════════════════ -->
+    <div id="app-body">
 
         <!-- ── Left Sidebar ──────────────────────────────────────────────────── -->
         <aside id="sidebar" aria-label="Library sidebar">
-            <button id="sidebar-close" class="ctrl-btn mobile-only" aria-label="Close menu">
-                <i data-lucide="x"></i>
-            </button>
 
-            <div class="sidebar-section">
-                <p class="sidebar-section-title">Your Library</p>
+            <div class="sidebar-mobile-header mobile-only" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 0;">
+                <span style="font-size: 16px; font-weight: 700;">Menu</span>
+                <button id="sidebar-close" class="ctrl-btn sidebar-close-btn" aria-label="Close menu">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Library section -->
+            <div id="sidebar-library-section" class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span class="sidebar-section-title">Your Library</span>
+                    <button id="btn-refresh-library" class="ctrl-btn" title="Refresh library" aria-label="Refresh library">
+                        <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+                    </button>
+                </div>
 
                 <!-- Liked Songs entry -->
-                <div id="sidebar-liked" class="sidebar-item sidebar-liked-item" role="button" tabindex="0"
-                    aria-label="Liked Songs">
-                    <span class="sidebar-liked-icon">♥</span>
+                <div id="sidebar-liked" class="sidebar-item sidebar-liked-item" role="button" tabindex="0" aria-label="Liked Songs">
+                    <div class="sidebar-item-icon sidebar-liked-icon-wrap">
+                        <span style="font-size:16px;">♥</span>
+                    </div>
                     <div class="sidebar-item-info">
                         <span class="sidebar-item-name">Liked Songs</span>
                         <span class="sidebar-item-meta">Playlist</span>
@@ -101,7 +123,9 @@
                 </div>
 
                 <div id="sidebar-recent" class="sidebar-item" role="button" tabindex="0" aria-label="Recently Played">
-                    <span class="sidebar-liked-icon" style="font-size:16px;">🕐</span>
+                    <div class="sidebar-item-icon">
+                        <span style="font-size:15px;">🕐</span>
+                    </div>
                     <div class="sidebar-item-info">
                         <span class="sidebar-item-name">Recently Played</span>
                         <span class="sidebar-item-meta">History</span>
@@ -113,7 +137,7 @@
                 </div>
             </div>
 
-            <!-- Playback Quality Settings (Moved from Navbar) -->
+            <!-- Playback Quality Settings -->
             <div class="sidebar-section settings-sidebar-section">
                 <p class="sidebar-section-title">Playback Quality</p>
                 <div class="mode-btn-group sidebar-mode-group">
@@ -125,7 +149,19 @@
             </div>
 
             <!-- Sidebar footer: login prompt or user info -->
-            <div style="margin-top:auto;">
+            <div class="sidebar-footer">
+                <!-- PWA Install Card -->
+                <div id="sidebar-install-card" class="sidebar-install-card hidden">
+                    <div class="install-card-icon">📱</div>
+                    <p class="install-card-title">Install Fluffy Music</p>
+                    <p class="install-card-desc">Add to your home screen for a better experience</p>
+                    <button id="sidebar-install-btn" class="btn btn-primary"
+                        style="width:100%;justify-content:center;margin-top:10px;">
+                        <i data-lucide="download" style="width:14px;height:14px;"></i>
+                        Install App
+                    </button>
+                </div>
+
                 <!-- Login card (for unauthenticated users) -->
                 <div id="sidebar-login-card">
                     <i data-lucide="cloud"
@@ -151,25 +187,52 @@
                     </button>
                 </div>
             </div>
+
         </aside>
 
         <!-- Mobile sidebar overlay -->
         <div id="sidebar-overlay" aria-hidden="true"></div>
 
-        <!-- ── Main Content ───────────────────────────────────────────────────── -->
+        <!-- ── Main Content ─────────────────────────────────────────────────── -->
         <main id="main-content" role="main" aria-label="Music content">
             <!-- Populated by renderHomeView() / renderPlaylistHero() / renderTrackList() -->
         </main>
 
-    </div><!-- /body-wrap -->
+        <!-- ── Right Panel (desktop only) ── Queue OR Lyrics ──────────────── -->
+        <div id="right-panel" class="right-panel hidden" aria-label="Queue and Lyrics">
+
+            <!-- Right panel header with tabs -->
+            <div class="right-panel-header">
+                <div class="right-panel-tabs">
+                    <button id="rp-tab-queue" class="rp-tab active" data-panel="queue">Queue</button>
+                    <button id="rp-tab-lyrics" class="rp-tab" data-panel="lyrics">Lyrics</button>
+                </div>
+                <button id="right-panel-close" class="ctrl-btn" aria-label="Close panel">
+                    <i data-lucide="x" style="width:16px;height:16px;"></i>
+                </button>
+            </div>
+
+            <!-- Queue content -->
+            <div id="rp-queue-content" class="rp-content">
+                <div id="queue-list" class="queue-list"></div>
+            </div>
+
+            <!-- Lyrics content -->
+            <div id="rp-lyrics-content" class="rp-content hidden">
+                <div id="rp-lyrics-panel" class="lyrics-panel-body"></div>
+            </div>
+
+        </div>
+
+    </div><!-- /app-body -->
 
 
-    <!-- ── Hidden YouTube Player ─────────────────────────────────────────────── -->
+    <!-- ══ HIDDEN YOUTUBE PLAYER ════════════════════════════════════════════════ -->
     <div id="yt-hidden-slot" aria-hidden="true">
         <div id="yt-player-container"></div>
     </div>
 
-    <!-- ── Player Bar ────────────────────────────────────────────────────────── -->
+    <!-- ══ PLAYER BAR (fixed bottom) ════════════════════════════════════════ -->
     <footer id="player-bar" class="hidden" role="region" aria-label="Music player controls">
 
         <!-- Left: track info -->
@@ -203,8 +266,7 @@
 
             <div class="player-progress-wrap" role="group" aria-label="Seek bar">
                 <span class="time-display" id="time-current" aria-label="Current time">0:00</span>
-                <div id="progress-bar" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100"
-                    aria-valuenow="0">
+                <div id="progress-bar" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                     <div id="progress-fill"></div>
                     <div id="progress-thumb"></div>
                 </div>
@@ -212,15 +274,18 @@
             </div>
         </div>
 
-        <!-- Right: mode toggle + volume -->
+        <!-- Right: actions -->
         <div class="player-right">
-            <button id="btn-queue" class="ctrl-btn" aria-label="View queue" title="Queue">
+            <button id="btn-lyrics" class="ctrl-btn desktop-only" aria-label="Show lyrics" title="Lyrics">
+                <i data-lucide="align-left" style="width:16px;height:16px;"></i>
+            </button>
+            <button id="btn-queue" class="ctrl-btn desktop-only" aria-label="View queue" title="Queue">
                 <i data-lucide="list-music" style="width:16px;height:16px;"></i>
             </button>
-            <button id="btn-sleep" class="ctrl-btn" aria-label="Sleep timer" title="Sleep timer: Off">
+            <button id="btn-sleep" class="ctrl-btn desktop-only" aria-label="Sleep timer" title="Sleep timer: Off">
                 <i data-lucide="moon" style="width:16px;height:16px;"></i>
             </button>
-            <div class="volume-wrap" aria-label="Volume control">
+            <div class="volume-wrap desktop-only" aria-label="Volume control">
                 <i data-lucide="volume-2" class="volume-icon" style="width:16px;height:16px;"></i>
                 <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Volume">
             </div>
@@ -228,7 +293,7 @@
 
     </footer><!-- /player-bar -->
 
-    <!-- Queue Panel -->
+    <!-- ══ QUEUE PANEL (mobile/tablet) ════════════════════════════════════════ -->
     <div id="queue-panel" class="queue-panel hidden" aria-label="Queue" role="region">
         <div class="queue-header">
             <span class="queue-title">Up Next</span>
@@ -236,10 +301,167 @@
                 <i data-lucide="x" style="width:16px;height:16px;"></i>
             </button>
         </div>
-        <div id="queue-list" class="queue-list"></div>
+        <!-- On mobile, queue items render here -->
+        <div id="mobile-queue-list" class="queue-list"></div>
     </div>
 
-    <!-- Sleep Timer Panel -->
+    <!-- ══ LYRICS PANEL WRAP ════════════════════════════════════════════════════ -->
+    <div id="lyrics-panel-wrap" class="lyrics-panel-wrap hidden" aria-label="Lyrics" role="region">
+        <div id="lyrics-bg" class="lyrics-bg"></div>
+        <div class="lyrics-panel-header">
+            <span id="lyrics-panel-title" class="lyrics-panel-track-name">Lyrics</span>
+            <div class="lyrics-panel-actions">
+                <span id="lyrics-source-badge" class="lyrics-source-badge hidden"></span>
+                <button id="lyrics-close" class="ctrl-btn" aria-label="Close lyrics">
+                    <i data-lucide="x" style="width:16px;height:16px;"></i>
+                </button>
+            </div>
+        </div>
+        <div id="lyrics-panel" class="lyrics-panel-body"></div>
+    </div>
+
+    <!-- ══ BOTTOM NAV (mobile only) ════════════════════════════════════════════ -->
+    <nav id="bottom-nav" class="bottom-nav" aria-label="Bottom navigation">
+        <button class="bottom-nav-item active" id="bnav-home" aria-label="Home">
+            <i data-lucide="home" style="width:22px;height:22px;"></i>
+            <span>Home</span>
+        </button>
+        <button class="bottom-nav-item" id="bnav-search" aria-label="Search">
+            <i data-lucide="search" style="width:22px;height:22px;"></i>
+            <span>Search</span>
+        </button>
+        <button class="bottom-nav-item" id="bnav-library" aria-label="Library">
+            <i data-lucide="library" style="width:22px;height:22px;"></i>
+            <span>Library</span>
+        </button>
+        <button class="bottom-nav-item" id="bnav-liked" aria-label="Liked Songs">
+            <i data-lucide="heart" style="width:22px;height:22px;"></i>
+            <span>Liked</span>
+        </button>
+    </nav>
+
+    <!-- ══ MOBILE SEARCH VIEW ════════════════════════════════════════════════════ -->
+    <!-- Full screen search shown on mobile when Search tab is tapped in bottom nav -->
+    <div id="mobile-search-view" class="mobile-search-view hidden">
+        <div class="mobile-search-header">
+            <div class="mobile-search-input-wrap">
+                <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);"></i>
+                <input type="search" id="mobile-search-input"
+                    placeholder="Songs, artists, playlists…"
+                    autocomplete="off" spellcheck="false">
+                <button id="mobile-search-cancel" class="mobile-search-cancel">Cancel</button>
+            </div>
+        </div>
+        <div id="mobile-search-results" class="mobile-search-results">
+            <div class="mobile-search-history">
+                <p class="mobile-search-section-label">Recent Searches</p>
+                <div id="mobile-search-history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ NOW PLAYING FULL SCREEN (Mobile) ════════════════════════════════════ -->
+    <div id="now-playing-screen"
+        class="now-playing-screen hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Now Playing">
+
+        <!-- Swipe indicator -->
+        <div class="np-swipe-hint"></div>
+
+        <!-- Top bar -->
+        <div class="np-topbar">
+            <button id="np-close" class="np-close-btn" aria-label="Close Now Playing">
+                <i data-lucide="chevron-down" style="width:24px;height:24px;"></i>
+            </button>
+            <div class="np-topbar-center">
+                <span class="np-context-label">Now Playing</span>
+            </div>
+            <button id="np-more" class="np-more-btn ctrl-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" style="width:20px;height:20px;"></i>
+            </button>
+        </div>
+
+        <!-- Content area: album art OR lyrics -->
+        <div class="np-content-area">
+            <!-- Album Art View (default) -->
+            <div id="np-art-view" class="np-art-view">
+                <div class="np-art-wrap">
+                    <img id="np-album-art" src="" alt="Album art" class="np-album-art">
+                </div>
+            </div>
+            <!-- Lyrics View (shown when lyrics tab active) -->
+            <div id="np-lyrics-view" class="np-lyrics-view hidden">
+                <div id="np-lyrics-content" class="np-lyrics-content"></div>
+            </div>
+        </div>
+
+        <!-- Track info -->
+        <div class="np-track-info">
+            <div class="np-track-text">
+                <span id="np-track-name" class="np-track-name">–</span>
+                <span id="np-track-artist" class="np-track-artist">–</span>
+            </div>
+            <button id="np-like-btn" class="like-btn np-like-btn" aria-label="Add to Liked Songs">♡</button>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="np-progress-section">
+            <div id="np-progress-bar" class="np-progress-bar"
+                role="slider" aria-label="Seek"
+                aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="np-progress-fill" class="np-progress-fill"></div>
+                <div id="np-progress-thumb" class="np-progress-thumb"></div>
+            </div>
+            <div class="np-time-row">
+                <span id="np-time-current" class="np-time">0:00</span>
+                <span id="np-time-total" class="np-time">0:00</span>
+            </div>
+        </div>
+
+        <!-- Main controls -->
+        <div class="np-controls">
+            <button id="np-shuffle" class="np-ctrl-btn" aria-label="Shuffle">
+                <i data-lucide="shuffle" style="width:20px;height:20px;"></i>
+            </button>
+            <button id="np-prev" class="np-ctrl-btn" aria-label="Previous">
+                <i data-lucide="skip-back" style="width:28px;height:28px;"></i>
+            </button>
+            <button id="np-play" class="np-play-btn" aria-label="Play">
+                <i data-lucide="play" style="width:28px;height:28px;"></i>
+            </button>
+            <button id="np-next" class="np-ctrl-btn" aria-label="Next">
+                <i data-lucide="skip-forward" style="width:28px;height:28px;"></i>
+            </button>
+            <button id="np-repeat" class="np-ctrl-btn" data-mode="none" aria-label="Repeat">
+                <i data-lucide="repeat" style="width:20px;height:20px;"></i>
+            </button>
+        </div>
+
+        <!-- Bottom action row -->
+        <div class="np-actions-row">
+            <button id="np-share-btn" class="np-action-btn" aria-label="Share" title="Share">
+                <i data-lucide="share-2" style="width:18px;height:18px;"></i>
+                <span>Share</span>
+            </button>
+            <button id="np-lyrics-tab" class="np-action-btn" aria-label="Lyrics" title="Lyrics">
+                <i data-lucide="align-left" style="width:18px;height:18px;"></i>
+                <span>Lyrics</span>
+            </button>
+            <button id="np-queue-btn" class="np-action-btn" aria-label="Queue" title="Queue">
+                <i data-lucide="list-music" style="width:18px;height:18px;"></i>
+                <span>Queue</span>
+            </button>
+            <button id="np-sleep-btn" class="np-action-btn" aria-label="Sleep Timer" title="Sleep Timer">
+                <i data-lucide="moon" style="width:18px;height:18px;"></i>
+                <span>Sleep</span>
+            </button>
+        </div>
+
+    </div><!-- /now-playing-screen -->
+
+    <!-- ══ SLEEP TIMER PANEL ════════════════════════════════════════════════════ -->
     <div id="sleep-panel" class="sleep-panel hidden">
         <div class="sleep-header">
             <span>Sleep Timer</span>
@@ -257,35 +479,10 @@
         <p id="sleep-status" class="sleep-status hidden"></p>
     </div>
 
-    <!-- Toast container (appended by JS, but pre-placing it helps) -->
+    <!-- ══ TOAST CONTAINER ════════════════════════════════════════════════════ -->
     <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-    <!-- ── Firebase SDK (ESM, loaded as module) ────────────────────────────────── -->
-    <!-- app.js imports firebase.js which imports from Firebase CDN -->
-    <script type="module" src="/src/js/app.js"></script>
-
-    <!-- ── Initialize Lucide Icons (after DOM ready) ─────────────────────────── -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-        });
-    </script>
-
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then(reg => console.log('SW registered:', reg.scope))
-            .catch(err => console.warn('SW registration failed:', err));
-        });
-      }
-    </script>
-
-    <!-- Keyboard Shortcuts Modal -->
+    <!-- ══ KEYBOARD SHORTCUTS MODAL ════════════════════════════════════════════ -->
     <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
         <div class="shortcuts-card">
             <div class="shortcuts-header">
@@ -308,6 +505,28 @@
             </div>
         </div>
     </div>
+
+    <!-- ══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
+    <script type="module" src="/src/js/app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker
+                    .register('/service-worker.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+    </script>
 
 </body>
 

@@ -66,6 +66,13 @@
             <img src="/src/img/icon.png" alt="Fluffy Music Icon" width="28" height="28" class="nav-logo-img">
             <span class="gradient-text">Fluffy Music</span>
         </div>
+        <button id="land-install-btn"
+            class="btn-install-land hidden"
+            aria-label="Install app">
+            <i data-lucide="download"
+                style="width:14px;height:14px;"></i>
+            Install
+        </button>
         <a href="/app.html" class="btn-primary" id="nav-open-app">
             <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
             Open App
@@ -214,6 +221,45 @@
                 setTimeout(() => inputBox.classList.remove('invalid'), 2000);
             }
         });
+    </script>
+
+    <!-- PWA Install for landing page -->
+    <script>
+        let landingInstallPrompt = null;
+
+        window.addEventListener(
+            'beforeinstallprompt', (e) => {
+                e.preventDefault();
+                landingInstallPrompt = e;
+                const btn =
+                    document.getElementById(
+                        'land-install-btn');
+                if (btn) btn.classList.remove('hidden');
+            });
+
+        window.addEventListener(
+            'appinstalled', () => {
+                landingInstallPrompt = null;
+                const btn =
+                    document.getElementById(
+                        'land-install-btn');
+                if (btn) btn.classList.add('hidden');
+            });
+
+        document.getElementById('land-install-btn')
+            ?.addEventListener('click', async () => {
+                if (!landingInstallPrompt) return;
+                landingInstallPrompt.prompt();
+                const { outcome } =
+                    await landingInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    landingInstallPrompt = null;
+                    document.getElementById('land-install-btn')
+                        ?.classList.add('hidden');
+                }
+            });
+
+        if (window.lucide) lucide.createIcons();
     </script>
 
     <!-- Service Worker Registration -->
