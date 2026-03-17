@@ -170,7 +170,7 @@ export function renderTrackList(tracks, containerId, onTrackClick) {
               data-track-id="${track.id}"
               aria-label="${isLiked(track.id) ? 'Remove from Liked Songs' : 'Add to Liked Songs'}"
               title="${isLiked(track.id) ? 'Remove from Liked Songs' : 'Add to Liked Songs'}"
-              >${isLiked(track.id) ? '♥' : '♡'}</button>
+              ><i data-lucide="heart"></i></button>
     </div>
   `).join('');
 
@@ -373,7 +373,7 @@ export function renderMobileLibraryView(links, onLinkClick, onLinkRemove, onLike
 
   const likedHtml = `
     <div class="track-row liked-songs-mobile-row" role="button" tabindex="0" style="grid-template-columns: 48px 1fr auto; padding: 12px; gap: 16px; align-items: center; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;">
-      <div style="width: 48px; height: 48px; border-radius: 4px; background: linear-gradient(135deg, rgba(69,10,245,0.8), rgba(196,239,217,0.8)); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">♥</div>
+      <div style="width: 48px; height: 48px; border-radius: 4px; background: linear-gradient(135deg, rgba(69,10,245,0.8), rgba(196,239,217,0.8)); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;"><i data-lucide="heart" style="width:24px;height:24px;fill:white;"></i></div>
       <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden;">
         <span style="font-size: 15px; font-weight: 500; font-family: inherit; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Liked Songs</span>
         <span style="font-size: 13px; color: var(--text-muted);">${likedCount} tracks</span>
@@ -476,7 +476,8 @@ export function updatePlayerBar(track) {
     }
     const liked = isLiked(track.id);
     likeBtn.dataset.trackId = track.id;
-    likeBtn.textContent = liked ? '♥' : '♡';
+    likeBtn.innerHTML = `<i data-lucide="heart"></i>`;
+    if (window.lucide) window.lucide.createIcons();
     likeBtn.title = liked ? 'Remove from Liked Songs' : 'Add to Liked Songs';
     likeBtn.setAttribute('aria-label', liked ? 'Remove from Liked Songs' : 'Add to Liked Songs');
     if (liked) likeBtn.classList.add('liked'); else likeBtn.classList.remove('liked');

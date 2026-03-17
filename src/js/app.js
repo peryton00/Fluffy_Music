@@ -893,8 +893,9 @@ function attachEventListeners() {
         toggleLike(track).then(liked => {
           const btn = document.getElementById('np-like-btn');
           if (btn) {
-            btn.textContent = liked ? '♥' : '♡';
+            btn.innerHTML = `<i data-lucide="heart"></i>`;
             btn.classList.toggle('liked', liked);
+            if (window.lucide) window.lucide.createIcons();
           }
         });
       });
@@ -975,7 +976,7 @@ function attachEventListeners() {
           await navigator.share(shareData);
         } else {
           await navigator.clipboard.writeText(shareData.url);
-          if (window.showToast) window.showToast('Link copied! 📋', 'success');
+          if (window.showToast) window.showToast('Added to Liked Songs', 'success');
         }
       } catch (e) {}
     });
@@ -1398,7 +1399,7 @@ function renderLikedSongsView() {
     mainContent.innerHTML = `
       <div class="liked-songs-view">
         <div class="liked-songs-hero">
-          <div class="liked-songs-hero-art">♥</div>
+          <div class="liked-songs-hero-art"><i data-lucide="heart" style="width:64px;height:64px;fill:white;"></i></div>
           <div class="hero-details">
             <span class="hero-type">PLAYLIST</span>
             <h1 class="hero-title">Liked Songs</h1>
@@ -1406,9 +1407,9 @@ function renderLikedSongsView() {
           </div>
         </div>
         <div class="empty-state" style="margin-top:48px;">
-          <div style="font-size:48px;margin-bottom:16px;">♡</div>
-          <p>Songs you like will appear here</p>
-          <p class="hint" style="margin-top:8px;color:var(--text-muted);">Hit ♡ on any track to save it</p>
+          <div style="font-size:48px;margin-bottom:16px;"><i data-lucide="heart" style="width:48px;height:48px;"></i></div>
+          <h2 style="font-size:24px;margin-bottom:8px;">Your Liked Songs</h2>
+          <p class="hint" style="margin-top:8px;color:var(--text-muted);">Hit the heart icon on any track to save it</p>
         </div>
       </div>`;
     return;
@@ -1419,7 +1420,7 @@ function renderLikedSongsView() {
       <div id="hero-section">
         <div class="hero-inner">
           <div class="hero-art-wrap">
-            <div class="liked-songs-hero-art">♥</div>
+            <div class="liked-songs-hero-art"><i data-lucide="heart" style="width:64px;height:64px;fill:white;"></i></div>
           </div>
           <div class="hero-details">
             <span class="hero-type">PLAYLIST</span>
@@ -1612,9 +1613,10 @@ function syncNowPlayingState() {
     const likeBtn = document.getElementById('np-like-btn');
     if (likeBtn) {
       const liked = isLiked(track.id);
-      likeBtn.textContent = liked ? '♥' : '♡';
+      likeBtn.innerHTML = `<i data-lucide="heart"></i>`;
       likeBtn.dataset.trackId = track.id;
       likeBtn.classList.toggle('liked', liked);
+      if (window.lucide) window.lucide.createIcons();
     }
   });
 

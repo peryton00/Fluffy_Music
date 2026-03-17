@@ -179,7 +179,7 @@ export function updateAllHeartButtons(trackId) {
   const liked = isLiked(trackId);
   const btns = document.querySelectorAll(`.like-btn[data-track-id="${trackId}"]`);
   btns.forEach((btn) => {
-    btn.textContent = liked ? '♥' : '♡';
+    btn.innerHTML = `<i data-lucide="heart"></i>`;
     btn.title = liked ? 'Remove from Liked Songs' : 'Add to Liked Songs';
     btn.setAttribute('aria-label', liked ? 'Remove from Liked Songs' : 'Add to Liked Songs');
     if (liked) {
@@ -188,6 +188,7 @@ export function updateAllHeartButtons(trackId) {
       btn.classList.remove('liked');
     }
   });
+  if (window.lucide) window.lucide.createIcons();
 }
 
 /**
