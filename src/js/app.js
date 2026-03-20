@@ -2,6 +2,11 @@
 // Coordinates all modules: auth, player, spotify, youtube, ui, sync.
 
 import { initAuth, loginWithGoogle, logout, isLoggedIn, getCurrentUser } from './auth.js';
+import { 
+  buildHomeSections, clearHomeSectionsCache, 
+  buildTimeOfDaySection, buildChartsSection, buildPersonalizedSections, 
+  buildLanguageSection, buildMoodSection, buildGenreSection, buildDecadesSection 
+} from './home-sections.js';
 import { loadUserLibrary, saveLink, removeLink, isLinkSaved, getLocalLibrary } from './sync.js';
 import { parseSpotifyLink, fetchSpotifyData, fetchAllTracks } from './spotify.js';
 import { initYouTubeAPI, setVolume } from './youtube.js';
@@ -14,10 +19,10 @@ import {
   showToast, showModal, renderSavedLinks, renderTrackList,
   renderPlaylistHero, renderHomeView, renderLoadingProgress, showSkeleton,
   renderRecentlyPlayed, renderQueuePanel,
-  renderLyricsPanel, highlightSyncedLine
+  renderLyricsPanel, highlightSyncedLine, renderRecommendationSections
 } from './ui.js';
 import { FM } from './storage.js';
-import { getLikedSongs, toggleLike, updateLikedCountBadge } from './likes.js';
+import { getLikedSongs, toggleLike, updateLikedCountBadge, HEART_ICON, HEART_FILL_ICON } from './likes.js';
 import { getDataMode, setDataMode, applyDataMode, getYTQuality } from './data-mode.js';
 import { initMediaSession } from './media-session.js';
 import {
@@ -37,8 +42,54 @@ let lyricsOpen = false;
 let currentLyricsTrackId = null;
 let nowPlayingOpen = false;
 let npLyricsActive = false;
+let currentRecsRequestId = 0;
 
 // ── Initialization ────────────────────────────────────────────────────────────
+
+
+/**
+ * Loads home recommendations incrementally.
+ */
+async function loadHomeRecommendations() {
+  const requestId = ++currentRecsRequestId;
+  if (!document.getElementById('home-recommendations')) return;
+
+  try {
+    const builders = [
+      { fn: buildTimeOfDaySection, id: 'tod' },
+      { fn: buildChartsSection, id: 'charts' },
+      { fn: buildPersonalizedSections, id: 'personal' },
+      { fn: buildLanguageSection, id: 'lang' },
+      { fn: buildMoodSection, id: 'mood' },
+      { fn: buildGenreSection, id: 'genre' },
+      { fn: buildDecadesSection, id: 'decades' }
+    ];
+
+    for (const item of builders) {
+      if (requestId !== currentRecsRequestId) return;
+
+      try {
+        const result = await item.fn();
+        if (requestId !== currentRecsRequestId) return;
+
+        if (result) {
+          const sections = Array.isArray(result) ? result : [result];
+          if (sections.length > 0) {
+            renderRecommendationSections(sections, (url) => handleSpotifyLink(url), true);
+          }
+        }
+      } catch (e) {
+        console.error(`[Recs] Failed to load ${item.id}:`, e);
+      }
+    }
+    } finally {
+    if (requestId === currentRecsRequestId) {
+      const liveArea = document.getElementById('home-recommendations');
+      const loading = liveArea?.querySelector('.home-recs-loading');
+      if (loading) loading.remove();
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize YouTube IFrame API
@@ -55,6 +106,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const recentLinks = FM.getSavedLinks().slice(0, 4);
       if (document.querySelector('.home-view')) {
         renderHomeView(recentLinks);
+        // Reload recs with personalization
+        setTimeout(() => loadHomeRecommendations(), 100);
       }
     } else {
       const links = getLocalLibrary();
@@ -62,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Clear home view recent grid if on home
       if (document.querySelector('.home-view')) {
         renderHomeView([]);
+        setTimeout(() => loadHomeRecommendations(), 100);
       }
     }
     // Always update liked count badge on auth change
@@ -71,6 +125,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 3. Render home view
   const recentLinks = FM.getSavedLinks().slice(0, 4);
   renderHomeView(recentLinks);
+
+  // Note: loadHomeRecommendations is now triggered via the initAuth listener above
+  // or via explicit user refresh, avoid calling it a 3rd time here.
 
   // 3a. Apply saved data mode immediately
   applyDataMode(getDataMode());
@@ -565,6 +622,28 @@ function closeLyrics() {
 // ── Event Listeners ───────────────────────────────────────────────────────────
 
 function attachEventListeners() {
+  // ── Home Button ──
+  document.getElementById('btn-home')?.addEventListener('click', () => {
+    // 1. Render home view with top 4 recent links
+    const recentLinks = FM.getSavedLinks().slice(0, 4);
+    renderHomeView(recentLinks);
+    
+    // 2. Load recommendations incrementally
+    setTimeout(() => loadHomeRecommendations(), 100);
+    
+    // 3. Reset sidebars/panels
+    if (typeof closeSidebar === 'function') closeSidebar();
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    
+    // 4. Scroll to top
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
+    
+    // 5. Clear search input
+    const searchInput = document.getElementById('top-search');
+    if (searchInput) searchInput.value = '';
+  });
+
   // ── Search Bar (top navbar) ──
   const searchInput = document.getElementById('top-search');
   if (searchInput) {
@@ -893,9 +972,8 @@ function attachEventListeners() {
         toggleLike(track).then(liked => {
           const btn = document.getElementById('np-like-btn');
           if (btn) {
-            btn.innerHTML = `<i data-lucide="heart"></i>`;
+            btn.innerHTML = liked ? HEART_FILL_ICON : HEART_ICON;
             btn.classList.toggle('liked', liked);
-            if (window.lucide) window.lucide.createIcons();
           }
         });
       });
@@ -982,7 +1060,16 @@ function attachEventListeners() {
     });
 
   // ── Wire right panel, mobile search, and bottom nav ──
-  wireRightPanel();
+  // ── Refresh Recommendations ──
+  document.getElementById('btn-refresh-recs')?.addEventListener('click', () => {
+    clearHomeSectionsCache();
+    const recentLinks = FM.getSavedLinks().slice(0, 4);
+    renderHomeView(recentLinks);
+    setTimeout(() => loadHomeRecommendations(), 100);
+    if (window.showToast) window.showToast('Refreshing recommendations...', 'info');
+  });
+
+    wireRightPanel();
   wireMobileSearch();
   wireBottomNav();
 }
@@ -1399,7 +1486,7 @@ function renderLikedSongsView() {
     mainContent.innerHTML = `
       <div class="liked-songs-view">
         <div class="liked-songs-hero">
-          <div class="liked-songs-hero-art"><i data-lucide="heart" style="width:64px;height:64px;fill:white;"></i></div>
+          <div class="liked-songs-hero-art">${HEART_FILL_ICON.replace('width="16" height="16"', 'width="64" height="64"').replace('currentColor', 'white')}</div>
           <div class="hero-details">
             <span class="hero-type">PLAYLIST</span>
             <h1 class="hero-title">Liked Songs</h1>
@@ -1407,7 +1494,7 @@ function renderLikedSongsView() {
           </div>
         </div>
         <div class="empty-state" style="margin-top:48px;">
-          <div style="font-size:48px;margin-bottom:16px;"><i data-lucide="heart" style="width:48px;height:48px;"></i></div>
+          <div style="font-size:48px;margin-bottom:16px;">${HEART_ICON.replace('width="16" height="16"', 'width="48" height="48"')}</div>
           <h2 style="font-size:24px;margin-bottom:8px;">Your Liked Songs</h2>
           <p class="hint" style="margin-top:8px;color:var(--text-muted);">Hit the heart icon on any track to save it</p>
         </div>
@@ -1420,7 +1507,7 @@ function renderLikedSongsView() {
       <div id="hero-section">
         <div class="hero-inner">
           <div class="hero-art-wrap">
-            <div class="liked-songs-hero-art"><i data-lucide="heart" style="width:64px;height:64px;fill:white;"></i></div>
+            <div class="liked-songs-hero-art">${HEART_FILL_ICON.replace('width="16" height="16"', 'width="64" height="64"').replace('currentColor', 'white')}</div>
           </div>
           <div class="hero-details">
             <span class="hero-type">PLAYLIST</span>
@@ -1613,10 +1700,9 @@ function syncNowPlayingState() {
     const likeBtn = document.getElementById('np-like-btn');
     if (likeBtn) {
       const liked = isLiked(track.id);
-      likeBtn.innerHTML = `<i data-lucide="heart"></i>`;
+      likeBtn.innerHTML = liked ? HEART_FILL_ICON : HEART_ICON;
       likeBtn.dataset.trackId = track.id;
       likeBtn.classList.toggle('liked', liked);
-      if (window.lucide) window.lucide.createIcons();
     }
   });
 

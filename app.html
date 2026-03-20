@@ -5,7 +5,7 @@
     <script src="/src/js/visibility-fixer.js"></script>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Fluffy Music</title>
     <meta name="description" content="Stream any Spotify playlist, album, or song via YouTube. Free music player.">
     <meta name="theme-color" content="#6C63FF">
@@ -56,8 +56,13 @@
             <span class="nav-logo-text">Fluffy Music</span>
         </a>
 
+        <!-- Explicit Home button -->
+        
         <!-- Search bar (tablet + desktop only, hidden on mobile via CSS) -->
         <div class="nav-search-wrap desktop-search">
+            <button id="btn-home" class="ctrl-btn" aria-label="Home" title="Home">
+                <i data-lucide="home"></i>
+            </button>
             <i data-lucide="search" class="nav-search-icon" style="width:16px;height:16px;"></i>
             <input type="search" id="top-search"
                 placeholder="Search songs or paste Spotify link…"
@@ -113,7 +118,7 @@
                 <!-- Liked Songs entry -->
                 <div id="sidebar-liked" class="sidebar-item sidebar-liked-item" role="button" tabindex="0" aria-label="Liked Songs">
                     <div class="sidebar-item-icon sidebar-liked-icon-wrap">
-                        <i data-lucide="heart" style="width:16px;height:16px;fill:white;"></i>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-heart-fill" viewBox="0 0 16 16"><path d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/></svg>
                     </div>
                     <div class="sidebar-item-info">
                         <span class="sidebar-item-name">Liked Songs</span>
@@ -335,7 +340,7 @@
             <span>Library</span>
         </button>
         <button class="bottom-nav-item" id="bnav-liked" aria-label="Liked Songs">
-            <i data-lucide="heart" style="width:22px;height:22px;"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/></svg>
             <span>Liked</span>
         </button>
     </nav>
@@ -403,7 +408,7 @@
                 <span id="np-track-name" class="np-track-name">–</span>
                 <span id="np-track-artist" class="np-track-artist">–</span>
             </div>
-            <button id="np-like-btn" class="like-btn np-like-btn" aria-label="Add to Liked Songs"><i data-lucide="heart"></i></button>
+            <button id="np-like-btn" class="like-btn np-like-btn" aria-label="Add to Liked Songs"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/></svg></button>
         </div>
 
         <!-- Progress bar -->
@@ -507,7 +512,7 @@
     </div>
 
     <!-- ══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
-    <script type="module" src="/src/js/app.js"></script>
+    <script type="module" src="/src/js/app.js?v=6"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

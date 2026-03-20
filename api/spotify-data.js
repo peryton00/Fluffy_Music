@@ -103,13 +103,18 @@ async function fetchSpotifyScrape(type, id, offset, limit) {
   });
   
   if (!res.ok) {
-    throw new Error('scrape_failed');
+    if (res.status === 404) throw new Error('scrape_not_found');
+    throw new Error('scrape_failed_' + res.status);
   }
 
   const html = await res.text();
   const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
   
   if (!match) {
+    // If we can't find NEXT_DATA, it might be a 404 page that returned 200 (common in SPAs)
+    if (html.includes('Page not found') || html.includes('can’t seem to find')) {
+      throw new Error('scrape_not_found');
+    }
     throw new Error('scrape_parse_failed');
   }
 
@@ -389,6 +394,9 @@ module.exports = async function handler(req, res) {
       const scrapedData = await fetchSpotifyScrape(type, id, offset, limit);
       return successResponse(res, scrapedData);
     } catch (scrapeErr) {
+      if (scrapeErr.message === 'scrape_not_found') {
+        return errorResponse(res, 404, 'not_found_on_spotify');
+      }
       console.error('Scrape fallback error:', scrapeErr.message);
       return errorResponse(res, 500, 'fetch_failed_completely');
     }

@@ -1,64 +1,53 @@
 // src/js/home-sections.js
-// Handles all home recommendation logic:
-// Algorithm 1 — Static curated playlists (charts, decades)
-// Algorithm 2 — Search-based dynamic sections (moods, genres, languages)
-// Algorithm 3 — Personalized from liked songs
-// Algorithm 4 — Time-of-day and language based sections
+import { fetchSpotifyData } from './spotify.js';
+
 
 // ── Catalogue (static playlist IDs) ──────────────────────────────────────────
 
 const CATALOGUE = {
   charts: [
-    { id: 'top50global',  name: 'Top 50 Global',   spotifyId: '37i9dQZEVXbMDoHDwVN2tF', emoji: '🌍' },
-    { id: 'top50india',   name: 'Top 50 India',    spotifyId: '37i9dQZEVXbLZ52XmnySJg', emoji: '🇮🇳' },
-    { id: 'viral50global',name: 'Viral 50 Global', spotifyId: '37i9dQZEVXbG2hMaR0bUAb', emoji: '🔥' },
-    { id: 'top50usa',     name: 'Top 50 USA',      spotifyId: '37i9dQZEVXbLRQDuF5jeBp', emoji: '🇺🇸' },
-    { id: 'top50uk',      name: 'Top 50 UK',       spotifyId: '37i9dQZEVXbLnolsZ8PSNw', emoji: '🇬🇧' }
+    { id: 'top50global',   name: 'Top 50 Global',   spotifyId: '37i9dQZEVXbMDoHDwVN2tF', emoji: '🌍' },
+    { id: 'top50india',    name: 'Top 50 India',    spotifyId: '37i9dQZEVXbLZ52XmnySJg', emoji: '🇮🇳' },
+    { id: 'viral50global', name: 'Viral 50 Global', spotifyId: '37i9dQZEVXbLiRSasKsNU9', emoji: '🔥' },
+    { id: 'top50usa',      name: 'Top 50 USA',      spotifyId: '37i9dQZEVXbLRQDuF5jeBp', emoji: '🇺🇸' },
+    { id: 'top50uk',       name: 'Top 50 UK',       spotifyId: '37i9dQZEVXbLnolsZ8PSNw', emoji: '🇬🇧' }
   ],
 
   decades: [
-    { id: '80s',   name: '80s Hits',   spotifyId: '37i9dQZF1DXb57FjYWz00e', emoji: '📼' },
-    { id: '90s',   name: '90s Hits',   spotifyId: '37i9dQZF1DXbw1DrDd8vI8', emoji: '💿' },
-    { id: '2000s', name: '2000s Hits', spotifyId: '37i9dQZF1DX4o1uurG5Rod', emoji: '📱' },
-    { id: '2010s', name: '2010s Hits', spotifyId: '37i9dQZF1DX5Ejj0EkURtP', emoji: '🎵' }
+    { id: '80s',   name: 'Bollywood 80s',   spotifyId: '37i9dQZF1DX5rOEFf3Iycd', emoji: '📼' },
+    { id: '90s',   name: 'Bollywood 90s',   spotifyId: '37i9dQZF1DX0XUf4AF89p5', emoji: '💿' },
+    { id: '2000s', name: 'Bollywood 2000s', spotifyId: '37i9dQZF1DWZNJXX2UeBij', emoji: '📱' },
+    { id: '2010s', name: 'Bollywood 2010s', spotifyId: '37i9dQZF1DWVDvBpGQbzXj', emoji: '🎵' },
+    { id: '2020s', name: 'Viral India',     spotifyId: '37i9dQZEVXbLZ52XmnySJg', emoji: '🚀' }
   ],
 
   moods: [
-    { id: 'happy',    name: 'Happy',       query: 'happy feel good hits',        emoji: '😊' },
-    { id: 'chill',    name: 'Chill Vibes', query: 'chill relaxing music',         emoji: '😌' },
-    { id: 'workout',  name: 'Workout',     query: 'workout gym motivation',       emoji: '💪' },
-    { id: 'focus',    name: 'Focus',       query: 'focus study concentration',    emoji: '🧠' },
-    { id: 'party',    name: 'Party',       query: 'party dance hits',             emoji: '🎉' },
-    { id: 'sleep',    name: 'Sleep',       query: 'sleep calm peaceful music',    emoji: '🌙' },
-    { id: 'sad',      name: 'Sad Songs',   query: 'sad emotional heartbreak',     emoji: '💔' },
-    { id: 'romantic', name: 'Romance',     query: 'romantic love songs',          emoji: '❤️' }
+    { id: 'happy',   name: 'Happy Vibes',      spotifyId: '37i9dQZF1DWTwbZHrJRIgD', emoji: '😊' },
+    { id: 'chill',   name: 'Chill Mix',         spotifyId: '37i9dQZF1EVHGWrwldPRtj', emoji: '😌' },
+    { id: 'workout', name: 'Bollywood Workout',  spotifyId: '37i9dQZF1DX3wwp27Epwn5', emoji: '💪' },
+    { id: 'sad',     name: 'Sad Songs',          spotifyId: '37i9dQZF1DX7qK8ma5wgG1', emoji: '💔' }
   ],
 
   languages: [
-    { id: 'hindi',   name: 'Hindi Hits',     query: 'top hindi songs bollywood',       emoji: '🎬' },
-    { id: 'punjabi', name: 'Punjabi Beats',  query: 'top punjabi songs 2024',          emoji: '🥁' },
-    { id: 'english', name: 'English Pop',    query: 'top english pop hits',            emoji: '🎤' },
-    { id: 'tamil',   name: 'Tamil Hits',     query: 'top tamil songs kollywood',       emoji: '🎶' },
-    { id: 'telugu',  name: 'Telugu Hits',    query: 'top telugu songs tollywood',      emoji: '🎸' },
-    { id: 'bengali', name: 'Bengali Hits',   query: 'top bengali songs',               emoji: '🎵' }
+    { id: 'hindi',   name: 'Hot Hits Hindi',   spotifyId: '37i9dQZF1DX0XUfTFmNBRM', emoji: '🎦' },
+    { id: 'punjabi', name: 'Hot Hits Punjabi', spotifyId: '37i9dQZF1DWXVJK4aT7pmk', emoji: '🥁' },
+    { id: 'english', name: "Today's Top Hits", spotifyId: '37i9dQZF1DXcBWIGoYBM5M', emoji: '🎤' }
   ],
 
   genres: [
-    { id: 'bollywood',  name: 'Bollywood',  query: 'bollywood hits popular',          emoji: '🎦' },
-    { id: 'hiphop',     name: 'Hip Hop',    query: 'hip hop rap hits',                emoji: '🎧' },
-    { id: 'lofi',       name: 'Lo-fi',      query: 'lofi hip hop chill beats',        emoji: '☕' },
-    { id: 'classical',  name: 'Classical',  query: 'classical instrumental music',    emoji: '🎻' },
-    { id: 'rock',       name: 'Rock',       query: 'rock hits classic rock',          emoji: '🎸' },
-    { id: 'jazz',       name: 'Jazz',       query: 'jazz smooth classics',            emoji: '🎷' },
-    { id: 'edm',        name: 'EDM',        query: 'edm electronic dance music',      emoji: '🎛️' },
-    { id: 'devotional', name: 'Devotional', query: 'devotional bhakti spiritual',     emoji: '🕉️' }
+    { id: 'bollywood',  name: 'Bollywood',  spotifyId: '37i9dQZF1DX0XUfTFmNBRM', emoji: '🎦' },
+    { id: 'hiphop',     name: 'Hip Hop',    spotifyId: '37i9dQZF1DX0XUsKBvE6vS', emoji: '🎧' },
+    { id: 'lofi',       name: 'Lo-fi',      spotifyId: '37i9dQZF1DWYrS6rSFrIAs', emoji: '☕' },
+    { id: 'classical',  name: 'Classical',    spotifyId: '37i9dQZF1DX4sWSpwq3LiO', emoji: '🎹' },
+    { id: 'rock',       name: 'Rock',         spotifyId: '37i9dQZF1DWXRqgorJj26U', emoji: '🎸' },
+    { id: 'jazz',       name: 'Jazz',       spotifyId: '37i9dQZF1DXbITWG1ZJKYt', emoji: '🎷' },
+    { id: 'devotional', name: 'Devotional', spotifyId: '37i9dQZF1DX079fW2A980U', emoji: '🕉️' }
   ],
-
   timeOfDay: {
-    morning:   { id: 'morning',   name: 'Good Morning',      query: 'morning energy positive start',    emoji: '☀️' },
-    afternoon: { id: 'afternoon', name: 'Afternoon Boost',   query: 'afternoon productivity upbeat',    emoji: '🌤️' },
-    evening:   { id: 'evening',   name: 'Evening Wind Down', query: 'evening relax mellow',             emoji: '🌅' },
-    night:     { id: 'night',     name: 'Late Night',        query: 'late night chill lofi',            emoji: '🌙' }
+    morning:   { id: 'morning',   name: 'Morning Coffee', spotifyId: '37i9dQZF1DX6ziVCJnEm59', emoji: '☕' },
+    afternoon: { id: 'afternoon', name: 'Afternoon Acoustic', spotifyId: '37i9dQZF1DX4E3UdUs7fUx', emoji: '🌤️' },
+    evening:   { id: 'evening',   name: 'Evening Vibes',  spotifyId: '37i9dQZEVXbMDoHDwVN2tF', emoji: '🌅' },
+    night:     { id: 'night',     name: 'Late Night',     spotifyId: '37i9dQZF1DX2yvmlOdMYzV', emoji: '🌙' }
   }
 };
 
@@ -92,72 +81,62 @@ function setCache(key, data) {
   }
 }
 
-// ── Spotify Token Cache ───────────────────────────────────────────────────────
+// ── Fetch Helper with Timeout ─────────────────────────────────────────────────
 
-let tokenCache = null;
-let tokenExpiry = 0;
-
-async function getToken() {
-  if (tokenCache && Date.now() < tokenExpiry) {
-    return tokenCache;
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 8000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(id);
   }
-  const res = await fetch('/api/spotify-token');
-  const data = await res.json();
-  tokenCache = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-  return tokenCache;
 }
 
 // ── Spotify Fetch Helpers ─────────────────────────────────────────────────────
 
 async function fetchPlaylistMeta(spotifyId) {
   try {
-    const token = await getToken();
-    const res = await fetch(
-      `https://api.spotify.com/v1/playlists/${spotifyId}?fields=id,name,description,images,tracks(total)`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) return null;
-    const playlist = await res.json();
-    if (!playlist || !playlist.id) return null;
+    const data = await fetchSpotifyData('playlist', spotifyId);
+    if (!data) return null;
+    
     return {
-      spotifyId: playlist.id,
-      name: playlist.name || '',
-      description: playlist.description || '',
-      coverArt: playlist.images && playlist.images[0] ? playlist.images[0].url : '',
-      trackCount: playlist.tracks ? playlist.tracks.total : 0,
-      url: 'https://open.spotify.com/playlist/' + playlist.id
+      spotifyId: data.id,
+      name: data.name || '',
+      description: data.description || '',
+      coverArt: data.coverArt || '',
+      trackCount: data.totalTracks || 0,
+      url: 'https://open.spotify.com/playlist/' + data.id
     };
-  } catch {
+  } catch (err) {
+    // console.error(`[Recs] fetchPlaylistMeta error:`, err);
     return null;
   }
 }
 
 async function searchPlaylists(query, limit = 8) {
+  console.log(`[Recs] searchPlaylists for "${query}"`);
   try {
-    const token = await getToken();
     const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `https://api.spotify.com/v1/search?q=${encoded}&type=playlist&limit=${limit}&market=IN`,
-      { headers: { Authorization: `Bearer ${token}` } }
+    const res = await fetchWithTimeout(
+      `/api/spotify-search?q=${encoded}&limit=${limit}`,
+      { timeout: 15000 }
     );
     if (!res.ok) return [];
     const data = await res.json();
-    const items = (data.playlists && data.playlists.items) ? data.playlists.items : [];
-    return items
-      .filter(item => item != null)
-      .map(item => ({
-        spotifyId: item.id,
-        name: item.name || '',
-        description: item.description || '',
-        coverArt: item.images && item.images[0] ? item.images[0].url : '',
-        trackCount: item.tracks ? item.tracks.total : 0,
-        url: 'https://open.spotify.com/playlist/' + item.id
-      }));
-  } catch {
+    if (data.error || !data.results) return [];
+    return data.results;
+  } catch (err) {
+    console.error(`[Recs] searchPlaylists error for query "${query}":`, err);
     return [];
   }
 }
+
 
 // ── Time of Day Helper ────────────────────────────────────────────────────────
 
@@ -211,13 +190,13 @@ export async function buildChartsSection() {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const items = await Promise.all(
-    CATALOGUE.charts.map(async p => {
-      const meta = await fetchPlaylistMeta(p.spotifyId);
-      if (!meta) return null;
-      return { ...meta, label: p.emoji + ' ' + p.name };
-    })
-  );
+  const items = [];
+  for (const p of CATALOGUE.charts) {
+    const meta = await fetchPlaylistMeta(p.spotifyId);
+    if (meta) {
+      items.push({ ...meta, label: p.emoji + ' ' + p.name });
+    }
+  }
 
   const result = {
     id: 'charts',
@@ -235,13 +214,13 @@ export async function buildDecadesSection() {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const items = await Promise.all(
-    CATALOGUE.decades.map(async p => {
-      const meta = await fetchPlaylistMeta(p.spotifyId);
-      if (!meta) return null;
-      return { ...meta, label: p.emoji + ' ' + p.name };
-    })
-  );
+  const items = [];
+  for (const p of CATALOGUE.decades) {
+    const meta = await fetchPlaylistMeta(p.spotifyId);
+    if (meta) {
+      items.push({ ...meta, label: p.emoji + ' ' + p.name });
+    }
+  }
 
   const result = {
     id: 'decades',
@@ -259,13 +238,13 @@ export async function buildMoodSection() {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const items = await Promise.all(
-    CATALOGUE.moods.map(async mood => {
-      const results = await searchPlaylists(mood.query, 1);
-      if (!results.length) return null;
-      return { ...results[0], label: mood.emoji + ' ' + mood.name, moodName: mood.name };
-    })
-  );
+  const items = [];
+  for (const mood of CATALOGUE.moods) {
+    const meta = await fetchPlaylistMeta(mood.spotifyId);
+    if (meta) {
+      items.push({ ...meta, label: mood.emoji + ' ' + mood.name, moodName: mood.name });
+    }
+  }
 
   const result = {
     id: 'moods',
@@ -284,19 +263,18 @@ export async function buildLanguageSection() {
   if (cached) return cached;
 
   const hint = getLanguageHint();
-  // Put detected language first
   const sorted = [
     ...CATALOGUE.languages.filter(l => l.id === hint),
     ...CATALOGUE.languages.filter(l => l.id !== hint)
   ];
 
-  const items = await Promise.all(
-    sorted.map(async lang => {
-      const results = await searchPlaylists(lang.query, 1);
-      if (!results.length) return null;
-      return { ...results[0], label: lang.emoji + ' ' + lang.name, langName: lang.name };
-    })
-  );
+  const items = [];
+  for (const lang of sorted) {
+    const meta = await fetchPlaylistMeta(lang.spotifyId);
+    if (meta) {
+      items.push({ ...meta, label: lang.emoji + ' ' + lang.name, langName: lang.name });
+    }
+  }
 
   const result = {
     id: 'languages',
@@ -314,13 +292,13 @@ export async function buildGenreSection() {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const items = await Promise.all(
-    CATALOGUE.genres.map(async genre => {
-      const results = await searchPlaylists(genre.query, 1);
-      if (!results.length) return null;
-      return { ...results[0], label: genre.emoji + ' ' + genre.name, genreName: genre.name };
-    })
-  );
+  const items = [];
+  for (const genre of CATALOGUE.genres) {
+    const meta = await fetchPlaylistMeta(genre.spotifyId);
+    if (meta) {
+      items.push({ ...meta, label: genre.emoji + ' ' + genre.name, genreName: genre.name });
+    }
+  }
 
   const result = {
     id: 'genres',
@@ -335,17 +313,19 @@ export async function buildGenreSection() {
 
 export async function buildTimeOfDaySection() {
   const timeKey = getTimeOfDay();
-  const mood = CATALOGUE.timeOfDay[timeKey];
+  const config = CATALOGUE.timeOfDay[timeKey];
   const cacheKey = 'timeofday_' + timeKey;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const items = await searchPlaylists(mood.query, 8);
+  // For time of day, we just fetch one high-quality meta block
+  const meta = await fetchPlaylistMeta(config.spotifyId);
+  const items = meta ? [meta] : [];
 
   const result = {
     id: 'timeofday',
-    title: mood.emoji + ' ' + mood.name,
-    emoji: mood.emoji,
+    title: config.emoji + ' ' + config.name,
+    emoji: config.emoji,
     items
   };
 
@@ -370,16 +350,15 @@ export async function buildPersonalizedSections() {
       let cached = getCached(cacheKey);
 
       if (!cached) {
-        const items = await searchPlaylists(artist + ' hits playlist', 6);
-        if (items.length > 0) {
-          cached = {
-            id: 'artist_' + artist,
-            title: `🎤 Because you liked ${artist}`,
-            emoji: '🎤',
-            items
-          };
-          setCache(cacheKey, cached);
-        }
+        // Disabled search to avoid 403 errors from Spotify API
+        const items = []; 
+        cached = {
+          id: 'artist_' + artist,
+          title: `🎤 Because you liked ${artist}`,
+          emoji: '🎤',
+          items
+        };
+        setCache(cacheKey, cached);
       }
 
       if (cached) sections.push(cached);
@@ -451,10 +430,15 @@ export async function buildHomeSections() {
  * Used when user wants fresh recommendations.
  */
 export function clearHomeSectionsCache() {
+  localStorage.removeItem('fm_recs_cache');
+  
+  // Also clear any legacy individual keys
   const keys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith('fm_home_')) keys.push(key);
+    if (key && (key.startsWith('fm_home_') || key.startsWith('fm_recs_'))) {
+      keys.push(key);
+    }
   }
   keys.forEach(k => localStorage.removeItem(k));
 }

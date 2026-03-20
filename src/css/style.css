@@ -37,6 +37,12 @@
 
   --transition-fast: 0.2s ease;
   --transition-med: 0.3s ease;
+
+  /* Safe area insets for notched/dynamic island phones */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */
@@ -1669,10 +1675,13 @@ body[data-mode="standard"] #yt-player-container {
   left: 0;
   right: 0;
   height: var(--bottom-nav-height);
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
+  background: rgba(17, 17, 24, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 300;
   padding: 0 8px;
+  padding-bottom: var(--safe-bottom);
 }
 .bottom-nav-item {
   flex: 1;
@@ -1680,25 +1689,51 @@ body[data-mode="standard"] #yt-player-container {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   background: none;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   padding: 6px 4px;
   border-radius: 8px;
-  transition: color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
   font-family: inherit;
+  position: relative;
+  min-height: 48px;
+  min-width: 48px;
 }
 .bottom-nav-item span {
   font-size: 10px;
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .bottom-nav-item.active {
-  color: var(--text-primary);
+  color: var(--accent-primary);
 }
+.bottom-nav-item.active span {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+/* Active pill indicator above icon */
+/* .bottom-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 3px;
+  background: var(--accent-primary);
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(108, 99, 255, 0.6);
+} */
 .bottom-nav-item:hover {
-  color: var(--text-primary);
+  color: var(--text-secondary);
+}
+.bottom-nav-item:active {
+  transform: scale(0.92);
 }
 
 /* ══════════════════════════════════════════════════
@@ -1767,329 +1802,6 @@ body[data-mode="standard"] #yt-player-container {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 8px;
-}
-
-/* ── Responsive Breakpoints ────────────────────────────────────────────────────── */
-
-/* ── DESKTOP (≥ 1024px) ──────────────────────────────────────────────────────── */
-@media (min-width: 1024px) {
-  /* Sidebar full width */
-  #sidebar {
-    width: var(--sidebar-width);
-  }
-  /* No bottom nav */
-  .bottom-nav {
-    display: none !important;
-  }
-  /* Hide mobile-only elements */
-  .mobile-only {
-    display: none !important;
-  }
-  /* Right panel togglable (shown when not .hidden) */
-  .right-panel:not(.hidden) {
-    display: flex;
-  }
-  /* Now Playing hidden on desktop */
-  .now-playing-screen {
-    display: none !important;
-  }
-  /* Legacy queue-panel hidden (right panel used instead) */
-  .queue-panel {
-    display: none !important;
-  }
-  /* Desktop player bar grid */
-  #player-bar {
-    grid-template-columns: 280px 1fr 280px;
-    bottom: 0;
-  }
-  /* full track columns on desktop */
-  .track-album {
-    display: block;
-  }
-  .track-row {
-    grid-template-columns: 40px 44px 1fr 200px 60px;
-  }
-}
-
-/* ── TABLET (640px – 1023px) ─────────────────────────────────────────────────── */
-@media (min-width: 640px) and (max-width: 1023px) {
-  /* Narrower sidebar */
-  :root {
-    --sidebar-width: 220px;
-    --sidebar-w: 220px;
-  }
-  #sidebar {
-    width: 220px;
-  }
-  /* No bottom nav */
-  .bottom-nav {
-    display: none !important;
-  }
-  /* Hide mobile-only elements */
-  .mobile-only {
-    display: none !important;
-  }
-  /* Hide right panel on tablet */
-  .right-panel {
-    display: none !important;
-  }
-  /* Now Playing hidden on tablet */
-  .now-playing-screen {
-    display: none !important;
-  }
-  /* Player bar full-width at bottom */
-  #player-bar {
-    grid-template-columns: 220px 1fr 180px;
-    bottom: 0;
-  }
-  /* Hide track album on tablet */
-  .track-album {
-    display: none;
-  }
-  .track-row {
-    grid-template-columns: 36px 40px 1fr auto auto;
-  }
-  /* Hero art smaller */
-  .hero-art {
-    width: 160px;
-    height: 160px;
-  }
-  .hero-title {
-    font-size: 26px;
-  }
-  .recent-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* ── MOBILE (< 640px) ────────────────────────────────────────────────────────── */
-@media (max-width: 639px) {
-  /* Show bottom nav */
-  .bottom-nav {
-    display: flex;
-    align-items: center;
-  }
-
-  /* App body accounts for bottom nav and player bar */
-  #app-body,
-  #body-wrap {
-    padding-bottom: calc(var(--player-height) + var(--bottom-nav-height));
-  }
-
-  /* Player bar sits just above bottom nav */
-  #player-bar {
-    bottom: var(--bottom-nav-height);
-    height: 60px;
-    padding: 0 12px;
-    gap: 12px;
-    cursor: pointer;
-    grid-template-columns: 1fr auto;
-    border-radius: 0;
-  }
-
-  /* Hide desktop search in top nav */
-  .desktop-search,
-  .nav-search-wrap.desktop-search {
-    display: none !important;
-  }
-
-  /* Hide desktop-only controls */
-  .desktop-only {
-    display: none !important;
-  }
-
-  /* Show hamburger button for settings/profile */
-  #hamburger {
-    display: flex !important;
-  }
-
-  /* Use mobile overrides for elements that should show on mobile */
-  .mobile-only {
-    display: flex !important;
-  }
-
-  /* Mobile Queue Panel Overlay */
-  .queue-panel {
-    top: var(--top-nav-height);
-    bottom: calc(var(--player-height) + var(--bottom-nav-height));
-    left: 0;
-    right: 0;
-    width: auto;
-    max-height: none;
-    border-radius: 0;
-    z-index: 250;
-  }
-  .player-like-btn {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-.sidebar-footer {
-    margin: 8px;
-}
-  /* Hide library section from mobile sidebar (use bottom nav instead) */
-  #sidebar-library-section {
-    display: none !important;
-  }
-
-  /* Sidebar slides in from left on mobile */
-  #sidebar {
-    position: fixed;
-    top: var(--top-nav-height);
-    bottom: 0;
-    left: 0;
-    width: min(80vw, 300px);
-    z-index: 280;
-    transform: translateX(-100%);
-    border-right: 1px solid var(--border);
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-  }
-  #sidebar.open {
-    transform: translateX(0);
-  }
-  #sidebar-close,
-  .sidebar-close-btn {
-    display: flex !important;
-  }
-  /* right panel hidden on mobile */
-  .right-panel {
-    display: none !important;
-  }
-
-  /* Mobile player info */
-  .player-track-info {
-    flex: 1;
-    max-width: none;
-  }
-  .player-center {
-    display: none;
-  }
-  .player-right {
-    display: none;
-  }
-  #player-art {
-    width: 40px;
-    height: 40px;
-  }
-  #btn-shuffle,
-  #btn-prev,
-  #btn-repeat {
-    display: none;
-  }
-
-  /* hero: compact on mobile */
-  .hero-inner {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 16px;
-    gap: 16px;
-  }
-  .hero-art,
-  .liked-songs-hero-art {
-    width: 100px;
-    height: 100px;
-  }
-  .hero-title {
-    font-size: 20px;
-  }
-  .hero-desc {
-    font-size: 12px;
-  }
-  .hero-actions {
-    justify-content: center;
-  }
-
-  /* Home view */
-  .home-view,
-  .liked-songs-view {
-    padding: 16px 14px 140px;
-  }
-  .home-heading {
-    font-size: 26px;
-  }
-  .home-subheading {
-    font-size: 14px;
-  }
-  .recent-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Track list: simplified on mobile */
-  .track-album {
-    display: none;
-  }
-  .track-row {
-    grid-template-columns: 28px 36px 1fr auto auto;
-    padding: 6px 8px;
-    gap: 8px;
-  }
-  .track-list {
-    padding: 4px 4px 140px;
-  }
-
-  /* Buttons smaller */
-  .btn {
-    gap: 4px;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  /* Toast: bottom on mobile */
-  #toast-container {
-    top: auto;
-    bottom: calc(var(--player-height) + var(--bottom-nav-height) + 12px);
-    right: 12px;
-    left: 12px;
-    align-items: center;
-  }
-  .toast {
-    max-width: 100%;
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* Sidebar remove buttons always visible on touch */
-  .sidebar-remove-btn {
-    opacity: 1 !important;
-    width: 24px;
-    height: 24px;
-  }
-
-  /* Smaller navbar text */
-  .nav-logo-text {
-    font-size: 14px;
-  }
-
-  /* landing page mobile */
-  .land-heading {
-    font-size: 32px;
-  }
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-  .land-nav {
-    padding: 16px 20px;
-  }
-  .features-section {
-    padding: 48px 16px;
-  }
-}
-
-/* Extra small screens */
-@media (max-width: 380px) {
-  .hero-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-  .nav-actions {
-    gap: 6px;
-  }
 }
 
 /* Liked count badge in sidebar */
@@ -3081,6 +2793,21 @@ kbd {
   overflow: hidden;
   transform: translateY(100%);
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Ambient radial glow from album art colors */
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      rgba(108, 99, 255, 0.18) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 90% 100%,
+      rgba(255, 101, 132, 0.1) 0%,
+      transparent 60%
+    );
+  /* Safe area padding for top notch */
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
 }
 .now-playing-screen.visible {
   transform: translateY(0);
@@ -3108,7 +2835,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 20px 4px;
+  padding: 10px 16px 4px;
   flex-shrink: 0;
 }
 .np-close-btn {
@@ -3202,7 +2929,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 28px 0;
+  padding: 8px 28px 4px;
   flex-shrink: 0;
 }
 .np-track-text {
@@ -3249,7 +2976,9 @@ kbd {
   height: 24px;
   stroke: currentColor;
   fill: none;
-  transition: fill 0.2s ease, stroke 0.2s ease;
+  transition:
+    fill 0.2s ease,
+    stroke 0.2s ease;
 }
 .np-like-btn.liked {
   color: var(--accent-secondary);
@@ -3323,7 +3052,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 20px 4px;
+  padding: 8px 16px 8px;
   flex-shrink: 0;
 }
 .np-ctrl-btn {
@@ -3375,10 +3104,11 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 8px 16px 28px;
+  padding: 12px 16px;
   flex-shrink: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   margin-top: auto;
+  padding-bottom: max(16px, var(--safe-bottom));
 }
 .np-action-btn {
   display: flex;
@@ -3458,5 +3188,704 @@ kbd {
 @media (min-width: 641px) {
   .now-playing-screen {
     display: none !important;
+  }
+}
+
+/* ============================================
+   HOME RECOMMENDATIONS
+============================================ */
+
+#home-recommendations {
+  padding-bottom: 32px;
+}
+
+.rec-section {
+  margin-bottom: 32px;
+}
+
+.rec-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  margin-bottom: 14px;
+}
+
+.rec-see-all {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.15s ease;
+  font-family: "Inter", sans-serif;
+}
+
+.rec-see-all:hover {
+  color: var(--text-primary);
+}
+
+.rec-scroll-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 24px 12px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.rec-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+.rec-card {
+  flex-shrink: 0;
+  width: 148px;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--bg-card);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.rec-card:hover {
+  background: var(--bg-hover);
+  transform: translateY(-2px);
+}
+
+.rec-card:active {
+  transform: translateY(0);
+}
+
+.rec-art-wrap {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rec-art {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+  background: var(--bg-hover);
+}
+
+.rec-play-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.rec-card:hover .rec-play-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rec-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 3px;
+  line-height: 1.3;
+}
+
+.rec-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.home-recs-loading {
+  padding: 0 24px;
+}
+
+.recs-skeleton-section {
+  margin-bottom: 32px;
+}
+
+.recs-skeleton-title {
+  height: 20px;
+  width: 160px;
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+
+.recs-skeleton-row {
+  display: flex;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.recs-skeleton-card {
+  flex-shrink: 0;
+  width: 148px;
+}
+
+.recs-skeleton-art {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.recs-skeleton-name {
+  height: 12px;
+  width: 80%;
+  border-radius: 4px;
+}
+
+.home-section .section-title,
+.rec-section .section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.recs-header-row {
+  padding: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+#btn-refresh-recs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: "Inter", sans-serif;
+  margin: 0;
+}
+
+#btn-refresh-recs:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+/* ── Responsive Breakpoints ────────────────────────────────────────────────────── */
+
+/* ── DESKTOP (≥ 1024px) ──────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  /* Sidebar full width */
+  #sidebar {
+    width: var(--sidebar-width);
+  }
+  /* No bottom nav */
+  .bottom-nav {
+    display: none !important;
+  }
+  /* Hide mobile-only elements */
+  .mobile-only {
+    display: none !important;
+  }
+  /* Right panel togglable (shown when not .hidden) */
+  .right-panel:not(.hidden) {
+    display: flex;
+  }
+  /* Now Playing hidden on desktop */
+  .now-playing-screen {
+    display: none !important;
+  }
+  /* Legacy queue-panel hidden (right panel used instead) */
+  .queue-panel {
+    display: none !important;
+  }
+  /* Desktop player bar grid */
+  #player-bar {
+    grid-template-columns: 280px 1fr 280px;
+    bottom: 0;
+  }
+  /* full track columns on desktop */
+  .track-album {
+    display: block;
+  }
+  .track-row {
+    grid-template-columns: 40px 44px 1fr 200px 60px;
+  }
+}
+
+/* ── TABLET (640px – 1023px) ─────────────────────────────────────────────────── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  /* Narrower sidebar */
+  :root {
+    --sidebar-width: 220px;
+    --sidebar-w: 220px;
+  }
+  #sidebar {
+    width: 220px;
+  }
+  /* No bottom nav */
+  .bottom-nav {
+    display: none !important;
+  }
+  /* Hide mobile-only elements */
+  .mobile-only {
+    display: none !important;
+  }
+  /* Hide right panel on tablet */
+  .right-panel {
+    display: none !important;
+  }
+  /* Now Playing hidden on tablet */
+  .now-playing-screen {
+    display: none !important;
+  }
+  /* Player bar full-width at bottom */
+  #player-bar {
+    grid-template-columns: 220px 1fr 180px;
+    bottom: 0;
+  }
+  /* Hide track album on tablet */
+  .track-album {
+    display: none;
+  }
+  .track-row {
+    grid-template-columns: 36px 40px 1fr auto auto;
+  }
+  /* Hero art smaller */
+  .hero-art {
+    width: 160px;
+    height: 160px;
+  }
+  .hero-title {
+    font-size: 26px;
+  }
+  .recent-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── MOBILE (< 640px) ────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Show bottom nav */
+  .bottom-nav {
+    display: flex;
+    align-items: center;
+    height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  }
+
+  /* App body accounts for bottom nav and player bar */
+  #app-body,
+  #body-wrap {
+    padding-bottom: calc(
+      var(--player-height) + var(--bottom-nav-height) + var(--safe-bottom)
+    );
+  }
+
+  /* Player bar: glassmorphism card above bottom nav */
+  #player-bar {
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+    height: 72px;
+    padding: 0 12px;
+    gap: 10px;
+    cursor: pointer;
+    grid-template-columns: 1fr auto;
+    border-radius: 12px 12px 0 0;
+    background: rgba(26, 26, 36, 0.95);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border-top: 1px solid rgba(108, 99, 255, 0.15);
+    box-shadow:
+      0 -4px 24px rgba(0, 0, 0, 0.4),
+      0 -1px 0 rgba(108, 99, 255, 0.08);
+  }
+
+  /* Album art in mobile player: slightly larger with border-radius */
+  #player-art {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+  }
+
+  /* Player track info takes up middle space */
+  .player-track-info {
+    min-width: 0;
+    overflow: hidden;
+    gap: 10px;
+  }
+
+  .player-text {
+    min-width: 0;
+    max-width: none;
+  }
+
+  #player-track-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  #player-track-artist {
+    font-size: 12px;
+  }
+
+  /* Mobile player: show play/pause and next button */
+  .player-center {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .player-right {
+    display: none;
+  }
+
+  /* On mobile player bar, only show play and next, hide progress row and others */
+  .player-progress-wrap {
+    display: none;
+  }
+  #btn-shuffle,
+  #btn-prev,
+  #btn-repeat {
+    display: none;
+  }
+  #btn-play {
+    width: 40px;
+    height: 40px;
+  }
+  #btn-next {
+    display: flex;
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Hide desktop search in top nav */
+  .desktop-search,
+  .nav-search-wrap.desktop-search {
+    display: none !important;
+  }
+
+  /* Hide desktop-only controls */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show hamburger button for settings/profile */
+  #hamburger {
+    display: flex !important;
+  }
+
+  /* Use mobile overrides for elements that should show on mobile */
+  .mobile-only {
+    display: flex !important;
+  }
+
+  /* Mobile Queue Panel Overlay */
+  .queue-panel {
+    top: var(--top-nav-height);
+    bottom: calc(
+      var(--player-height) + var(--bottom-nav-height) + var(--safe-bottom)
+    );
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: none;
+    border-radius: 0;
+    z-index: 250;
+  }
+
+  /* Like button in mobile mini player */
+  .player-like-btn {
+    position: static;
+    transform: none;
+    flex-shrink: 0;
+    margin-left: 2px;
+    display: flex;
+  }
+
+  /* Sidebar footer margin */
+  .sidebar-footer {
+    margin: 8px;
+  }
+
+  /* Hide library section from mobile sidebar (use bottom nav instead) */
+  #sidebar-library-section {
+    display: none !important;
+  }
+
+  /* Sidebar slides in from right on mobile */
+  #sidebar {
+    position: fixed;
+    top: var(--top-nav-height);
+    bottom: 0;
+    right: 0;
+    left: auto;
+    width: min(80vw, 300px);
+    z-index: 280;
+    transform: translateX(100%);
+    border-right: none;
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 32px rgba(0, 0, 0, 0.6);
+    background: rgba(17, 17, 24, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  #sidebar.open {
+    transform: translateX(0);
+  }
+  #sidebar-close,
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+
+  /* right panel hidden on mobile */
+  .right-panel {
+    display: none !important;
+  }
+
+  /* Hero: compact on mobile */
+  .hero-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 16px 16px;
+    gap: 16px;
+  }
+  .hero-art,
+  .liked-songs-hero-art {
+    width: 120px;
+    height: 120px;
+  }
+  .hero-title {
+    font-size: 22px;
+  }
+  .hero-desc {
+    font-size: 12px;
+  }
+  .hero-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Home view */
+  .home-view,
+  .liked-songs-view {
+    padding: 16px 14px 160px;
+  }
+  .home-heading {
+    font-size: 28px;
+  }
+  .home-subheading {
+    font-size: 14px;
+  }
+  .home-hero {
+    padding: 24px 16px;
+  }
+  .home-input-wrap {
+    padding: 0 4px;
+  }
+  .recent-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .recent-card {
+    padding: 10px;
+  }
+  .section-title {
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  .home-section {
+    margin-top: 28px;
+  }
+
+  /* Track list: simplified on mobile */
+  .track-album {
+    display: none;
+  }
+  .track-row {
+    grid-template-columns: 28px 40px 1fr auto auto;
+    padding: 8px 12px;
+    gap: 10px;
+    min-height: 56px;
+  }
+  .track-art {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+  }
+  .track-list {
+    padding: 4px 0 160px;
+  }
+  .track-name {
+    font-size: 14px;
+  }
+  .track-artist {
+    font-size: 12px;
+  }
+
+  /* Buttons slightly smaller */
+  .btn {
+    gap: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Toast: bottom on mobile */
+  #toast-container {
+    top: auto;
+    bottom: calc(
+      var(--player-height) + var(--bottom-nav-height) + var(--safe-bottom) +
+        12px
+    );
+    right: 12px;
+    left: 12px;
+    align-items: center;
+  }
+  .toast {
+    max-width: 100%;
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  /* Sidebar remove buttons always visible on touch */
+  .sidebar-remove-btn {
+    opacity: 1 !important;
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Nav logo text */
+  .nav-logo-text {
+    font-size: 15px;
+  }
+
+  /* Top nav: tighter on mobile */
+  #top-nav {
+    padding: 0 12px;
+    height: 56px;
+  }
+  :root {
+    --top-nav-height: 56px;
+  }
+
+  /* landing page mobile */
+  .land-heading {
+    font-size: 32px;
+  }
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  .land-nav {
+    padding: 16px 20px;
+  }
+  .features-section {
+    padding: 48px 16px;
+  }
+
+  /* Mobile search view accounts for safe area */
+  .mobile-search-view {
+    top: 56px;
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  }
+
+  /* Skeleton rows: no track album column */
+  .skeleton-row {
+    grid-template-columns: 40px 44px 1fr 60px;
+    padding: 10px 12px;
+  }
+  .bottom-nav-item:hover {
+    color: var(--text-primary);
+  }
+
+  /* Modal: full width on mobile */
+  .modal-card {
+    width: calc(100% - 24px);
+    padding: 20px;
+    border-radius: var(--radius-card);
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .nav-actions {
+    gap: 4px;
+  }
+  #player-bar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .home-heading {
+    font-size: 24px;
+  }
+  .rec-card {
+    width: 116px;
+  }
+}
+
+@media (max-width: 639px) {
+  .rec-card {
+    width: 130px;
+    padding: 10px;
+  }
+
+  .rec-section-header {
+    padding: 0 16px;
+  }
+
+  .rec-scroll-row {
+    padding: 4px 16px 12px;
+    gap: 10px;
+  }
+
+  .recs-skeleton-title {
+    margin-left: 0;
+  }
+
+  .home-recs-loading {
+    padding: 0 16px;
+  }
+
+  .recs-header-row {
+    padding: 12px 16px 0;
   }
 }

@@ -1,5 +1,5 @@
 // service-worker.js — Fluffy Music PWA Service Worker
-const CACHE_NAME = 'fluffy-music-v4';
+const CACHE_NAME = 'fluffy-music-v6';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -48,6 +48,12 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests (like Spotify and YouTube APIs) 
   // and local API calls which should never be cached as shell.
   if (!event.request.url.startsWith(self.location.origin) || event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // Cache-busting: Bypass cache if a version query parameter is present
+  if (event.request.url.includes('?v=')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
