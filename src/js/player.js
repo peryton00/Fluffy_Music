@@ -137,10 +137,10 @@ export function nextTrack() {
     return;
   }
 
-  const queue = isShuffled ? shuffledQueue : currentQueue;
+  const activeQueue = isShuffled ? shuffledQueue : currentQueue;
   let nextIndex = currentIndex + 1;
 
-  if (nextIndex >= queue.length) {
+  if (nextIndex >= activeQueue.length) {
     if (repeatMode === 'all') {
       nextIndex = 0;
     } else {
@@ -151,8 +151,17 @@ export function nextTrack() {
   }
 
   currentIndex = nextIndex;
-  const track = queue[nextIndex];
-  if (track) loadTrack(track, queue, nextIndex);
+  const track = activeQueue[nextIndex];
+  
+  // CRITICAL FIX: Pass 'currentQueue' to loadTrack, NOT activeQueue (which could be the shuffledQueue).
+  // If we pass the shuffledQueue, loadTrack will treat it as a new queue and overwrite the original un-shuffled history!
+  if (track) {
+    if (isShuffled) {
+      loadTrack(track, currentQueue, currentQueue.findIndex(t => t.id === track.id));
+    } else {
+      loadTrack(track, currentQueue, nextIndex);
+    }
+  }
 }
 
 /**
@@ -165,13 +174,20 @@ export function prevTrack() {
     return;
   }
 
-  const queue = isShuffled ? shuffledQueue : currentQueue;
+  const activeQueue = isShuffled ? shuffledQueue : currentQueue;
   let prevIndex = currentIndex - 1;
-  if (prevIndex < 0) prevIndex = repeatMode === 'all' ? queue.length - 1 : 0;
+  if (prevIndex < 0) prevIndex = repeatMode === 'all' ? activeQueue.length - 1 : 0;
 
   currentIndex = prevIndex;
-  const track = queue[prevIndex];
-  if (track) loadTrack(track, queue, prevIndex);
+  const track = activeQueue[prevIndex];
+  
+  if (track) {
+    if (isShuffled) {
+      loadTrack(track, currentQueue, currentQueue.findIndex(t => t.id === track.id));
+    } else {
+      loadTrack(track, currentQueue, prevIndex);
+    }
+  }
 }
 
 /**
@@ -300,11 +316,22 @@ export function formatTime(ms) {
 /** Updates the play/pause button icon. */
 function setPlayButtonState(isPlaying) {
   const btn = document.getElementById('btn-play');
-  if (!btn) return;
-  const iconName = isPlaying ? 'pause' : 'play';
-  btn.innerHTML = `<i data-lucide="${iconName}" style="width:20px;height:20px;"></i>`;
-  if (window.lucide) window.lucide.createIcons();
-  btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  if (btn) {
+    const iconName = isPlaying ? 'pause' : 'play';
+    btn.innerHTML = `<i data-lucide="${iconName}" style="width:20px;height:20px;"></i>`;
+    if (window.lucide) window.lucide.createIcons();
+    btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  }
+
+  // Sync Mobile NP Play Button
+  const npBtn = document.getElementById('np-play');
+  if (npBtn) {
+    const NP_PLAY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" style="margin-left: 3px;"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>`;
+    const NP_PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>`;
+    npBtn.innerHTML = isPlaying ? NP_PAUSE_ICON : NP_PLAY_ICON;
+    npBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  }
+
   console.log("Play button state changed to: ", isPlaying);
 }
 
@@ -337,6 +364,7 @@ YT.onStateChange((state) => {
 // Exported getters for app.js
 export function getCurrentTrack() { return currentTrack; }
 export function getQueue() { return currentQueue; }
+export function getActiveQueue() { return isShuffled ? shuffledQueue : currentQueue; }
 export function getIndex() { return currentIndex; }
 export function getRepeatMode() { return repeatMode; }
 export function getIsShuffled() { return isShuffled; }

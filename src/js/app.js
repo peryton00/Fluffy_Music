@@ -11,9 +11,9 @@ import { loadUserLibrary, saveLink, removeLink, isLinkSaved, getLocalLibrary } f
 import { parseSpotifyLink, fetchSpotifyData, fetchAllTracks } from './spotify.js';
 import { initYouTubeAPI, setVolume } from './youtube.js';
 import {
-  loadTrack, playPause, nextTrack, prevTrack,
+  loadTrack, playPause, nextTrack, prevTrack, getCurrentTrack,
   toggleShuffle, toggleRepeat, seekToPercent, setIsDraggingProgress,
-  getIsShuffled, getQueue, getIndex
+  getIsShuffled, getRepeatMode, getQueue, getActiveQueue, getIndex
 } from './player.js';
 import {
   showToast, showModal, renderSavedLinks, renderTrackList,
@@ -42,6 +42,7 @@ let lyricsOpen = false;
 let currentLyricsTrackId = null;
 let nowPlayingOpen = false;
 let npLyricsActive = false;
+let currentNPLyricsTrackId = null;
 let currentRecsRequestId = 0;
 
 // ── Initialization ────────────────────────────────────────────────────────────
@@ -524,7 +525,7 @@ async function openLyrics() {
     'lyrics-source-badge');
   if (!wrap) return;
 
-  const track = FM.getLastPlayed();
+  const track = getCurrentTrack() || FM.getLastPlayed();
   if (!track) {
     wrap.classList.remove('hidden');
     renderLyricsPanel('not_found', null, '');
@@ -839,9 +840,12 @@ function attachEventListeners() {
       if (!panel) return;
       const isHidden = panel.classList.toggle('hidden');
       if (!isHidden) {
-        const queue = getQueue();
+        const queue = getActiveQueue();
         const idx = getIndex();
-        renderQueuePanel(queue, idx, (track, q, i) => loadTrack(track, q, i), 'mobile-queue-list');
+        renderQueuePanel(queue, idx, (track, q, i) => {
+          const origQ = getQueue();
+          loadTrack(track, origQ, getIsShuffled() ? origQ.findIndex(t => t.id === track.id) : i);
+        }, 'mobile-queue-list');
       }
     }
   });
@@ -927,7 +931,7 @@ function attachEventListeners() {
       if (e.target.closest('#btn-play') || e.target.closest('#btn-next') ||
           e.target.closest('#btn-prev') || e.target.closest('#progress-bar') ||
           e.target.closest('button')) return;
-      if (FM.getLastPlayed()) openNowPlaying();
+      if (getCurrentTrack() || FM.getLastPlayed()) openNowPlaying();
     });
   }
 
@@ -938,14 +942,6 @@ function attachEventListeners() {
   document.getElementById('np-play')
     ?.addEventListener('click', () => {
       playPause();
-      import('./youtube.js').then(YTmod => {
-        const isPlaying = YTmod.getPlayerState?.() === 1;
-        const btn = document.getElementById('np-play');
-        if (!btn) return;
-        const icon = isPlaying ? 'pause' : 'play';
-        btn.innerHTML = `<i data-lucide="${icon}" style="width:28px;height:28px;"></i>`;
-        if (window.lucide) window.lucide.createIcons();
-      });
     });
 
   document.getElementById('np-prev')
@@ -956,17 +952,31 @@ function attachEventListeners() {
   document.getElementById('np-shuffle')
     ?.addEventListener('click', () => {
       toggleShuffle();
-      document.getElementById('np-shuffle')
-        ?.classList.toggle('active', getIsShuffled());
+      const shuffleBtn = document.getElementById('np-shuffle');
+      if (shuffleBtn) shuffleBtn.classList.toggle('active', getIsShuffled());
     });
 
   document.getElementById('np-repeat')
-    ?.addEventListener('click', toggleRepeat);
+    ?.addEventListener('click', () => {
+      toggleRepeat();
+      // Give player a tick, then sync the NP repeat button
+      setTimeout(() => {
+        const repeatBtn = document.getElementById('np-repeat');
+        if (!repeatBtn) return;
+        const mode = getRepeatMode();
+        repeatBtn.dataset.mode = mode;
+        repeatBtn.classList.toggle('active', mode !== 'none');
+        repeatBtn.setAttribute('aria-label',
+          mode === 'one' ? 'Repeat one (on)' :
+          mode === 'all' ? 'Repeat all (on)' :
+          'Repeat (off)');
+      }, 80);
+    });
 
   // NP Like button
   document.getElementById('np-like-btn')
     ?.addEventListener('click', () => {
-      const track = FM.getLastPlayed();
+      const track = getCurrentTrack() || FM.getLastPlayed();
       if (!track) return;
       import('./likes.js').then(({ toggleLike }) => {
         toggleLike(track).then(liked => {
@@ -1039,7 +1049,7 @@ function attachEventListeners() {
   // NP Share button
   document.getElementById('np-share-btn')
     ?.addEventListener('click', async () => {
-      const track = FM.getLastPlayed();
+      const track = getCurrentTrack() || FM.getLastPlayed();
       if (!track) return;
       const shareQuery = track.album === 'YouTube Radio'
         ? track.name
@@ -1115,7 +1125,8 @@ function switchRightPanelTab(tab) {
     queueTab?.classList.add('active');
     lyricsTab?.classList.remove('active');
     // Render queue directly into the right panel's queue-list
-    const queue = getQueue();
+    // Use getActiveQueue so it shows shuffled tracks if shuffle is on
+    const queue = getActiveQueue();
     const idx = getIndex();
     const listEl = document.getElementById('queue-list');
     if (listEl) {
@@ -1159,7 +1170,11 @@ function switchRightPanelTab(tab) {
         listEl.querySelectorAll('.queue-item').forEach(item => {
           item.addEventListener('click', () => {
             const i = parseInt(item.dataset.index, 10);
-            if (queue[i]) loadTrack(queue[i], queue, i);
+            const track = queue[i];
+            if (track) {
+              const origQ = getQueue();
+              loadTrack(track, origQ, getIsShuffled() ? origQ.findIndex(t => t.id === track.id) : i);
+            }
           });
         });
         const current = listEl.querySelector('.queue-current');
@@ -1177,7 +1192,7 @@ function switchRightPanelTab(tab) {
 }
 
 async function openRightPanelLyrics() {
-  const track = FM.getLastPlayed();
+  const track = getCurrentTrack() || FM.getLastPlayed();
   const panel = document.getElementById('rp-lyrics-panel');
   if (!panel) return;
   if (!track) {
@@ -1682,20 +1697,23 @@ function closeNowPlaying() {
 }
 
 function syncNowPlayingState() {
-  const track = FM.getLastPlayed();
+  const track = getCurrentTrack() || FM.getLastPlayed();
   if (!track) return;
 
+  // Album art
   const art = document.getElementById('np-album-art');
   if (art) {
     art.src = track.albumArt || '/src/img/logo.png';
     art.onerror = () => { art.src = '/src/img/logo.png'; };
   }
 
+  // Track name & artist
   const name = document.getElementById('np-track-name');
   const artist = document.getElementById('np-track-artist');
   if (name) name.textContent = track.name || '–';
   if (artist) artist.textContent = track.artist || '–';
 
+  // Like button
   import('./likes.js').then(({ isLiked }) => {
     const likeBtn = document.getElementById('np-like-btn');
     if (likeBtn) {
@@ -1703,8 +1721,42 @@ function syncNowPlayingState() {
       likeBtn.innerHTML = liked ? HEART_FILL_ICON : HEART_ICON;
       likeBtn.dataset.trackId = track.id;
       likeBtn.classList.toggle('liked', liked);
+      likeBtn.title = liked ? 'Remove from Liked Songs' : 'Add to Liked Songs';
+      likeBtn.setAttribute('aria-label', liked ? 'Remove from Liked Songs' : 'Add to Liked Songs');
     }
   });
+
+  // Play/Pause button initial state on open
+  import('./youtube.js').then(YTmod => {
+    const btn = document.getElementById('np-play');
+    if (!btn) return;
+    const isPlaying = YTmod.getPlayerState?.() === 1 || YTmod.getPlayerState?.() === 3;
+    const NP_PLAY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" style="margin-left: 3px;"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>`;
+    const NP_PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>`;
+    btn.innerHTML = isPlaying ? NP_PAUSE_ICON : NP_PLAY_ICON;
+    btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  });
+
+  // Shuffle button active state
+  const shuffleBtn = document.getElementById('np-shuffle');
+  if (shuffleBtn) shuffleBtn.classList.toggle('active', getIsShuffled());
+
+  // Repeat button mode
+  const repeatBtn = document.getElementById('np-repeat');
+  if (repeatBtn) {
+    const mode = getRepeatMode(); // 'none' | 'all' | 'one'
+    repeatBtn.dataset.mode = mode;
+    repeatBtn.classList.toggle('active', mode !== 'none');
+    repeatBtn.setAttribute('aria-label',
+      mode === 'one' ? 'Repeat one (on)' :
+      mode === 'all' ? 'Repeat all (on)' :
+      'Repeat (off)');
+  }
+
+  // Refresh lyrics if the panel is active
+  if (npLyricsActive) {
+    loadNPLyrics();
+  }
 
   syncNowPlayingProgress();
 }
@@ -1763,15 +1815,24 @@ function initNowPlayingSwipe(screen) {
 }
 
 async function loadNPLyrics() {
-  const track = FM.getLastPlayed();
+  const track = getCurrentTrack() || FM.getLastPlayed();
   if (!track) return;
+  
+  // Prevent redundant fetches if we already loaded this track's lyrics
+  if (currentNPLyricsTrackId === track.id) return;
+  
   const npContent = document.getElementById('np-lyrics-content');
   if (!npContent) return;
 
   npContent.innerHTML = `<div class="np-lyrics-loading"><div class="lyrics-spinner"></div></div>`;
+  currentNPLyricsTrackId = track.id;
 
   try {
     const result = await fetchLyrics(track);
+    
+    // Check if user changed the track while we were fetching
+    const currentTrack = getCurrentTrack() || FM.getLastPlayed();
+    if (currentTrack && currentTrack.id !== track.id) return;
 
     if (result.type === 'instrumental') {
       npContent.innerHTML = `<div class="np-lyrics-empty">🎵 Instrumental Track</div>`;
