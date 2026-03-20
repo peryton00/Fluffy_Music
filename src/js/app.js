@@ -1255,6 +1255,27 @@ function wireRightPanel() {
 function openMobileSearch() {
   const view = document.getElementById('mobile-search-view');
   if (!view) return;
+
+  const historyList = document.getElementById('mobile-search-history-list');
+  if (historyList) {
+    const history = FM.getSearchHistory();
+    if (history.length === 0) {
+      historyList.innerHTML = '<div class="mobile-search-history-empty" style="color:var(--text-secondary);padding:10px 0;">No recent searches</div>';
+    } else {
+      historyList.innerHTML = history.map(q => `
+        <div class="search-history-item" tabindex="0" role="button" style="padding:12px 0;">${escapeHtml(q)}</div>
+      `).join('');
+      historyList.querySelectorAll('.search-history-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const val = item.textContent;
+          closeMobileSearch();
+          if (parseSpotifyLink(val)) handleSpotifyLink(val);
+          else searchYouTube(val);
+        });
+      });
+    }
+  }
+
   view.classList.remove('hidden');
   view.classList.add('visible');
   setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 100);

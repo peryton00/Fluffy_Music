@@ -1,5 +1,5 @@
 // service-worker.js — Fluffy Music PWA Service Worker
-const CACHE_NAME = 'fluffy-music-v6';
+const CACHE_NAME = 'fluffy-music-v7';
 const APP_SHELL = [
   '/',
   '/index.html',
