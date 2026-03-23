@@ -257,6 +257,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (nowPlayingOpen && npLyricsActive) {
       setTimeout(() => loadNPLyrics(), 600);
     }
+    if (rightPanelCurrentTab === 'lyrics') {
+      setTimeout(() => openRightPanelLyrics(), 600);
+    }
   };
 
   // Keep Now Playing progress synced every 500ms
@@ -1206,6 +1209,14 @@ async function openRightPanelLyrics() {
       panel.innerHTML = '<div class="lyrics-empty"><div class="lyrics-empty-icon">🎵</div><p class="lyrics-empty-title">Instrumental Track</p></div>';
     } else if (result.type === 'not_found') {
       panel.innerHTML = `<div class="lyrics-empty"><div class="lyrics-empty-icon">🎤</div><p class="lyrics-empty-title">No Lyrics Found</p><p class="lyrics-empty-sub">Couldn't find lyrics for "${track.name}".</p></div>`;
+    } else if (result.type === 'genius_link') {
+      panel.innerHTML = `
+        <div class="lyrics-empty">
+          <div class="lyrics-empty-icon">🎤</div>
+          <p class="lyrics-empty-title">Lyrics not available here</p>
+          <p class="lyrics-empty-sub">Try Genius for the full lyrics:</p>
+          <a href="${result.url}" target="_blank" rel="noopener" class="genius-link-btn" style="display:inline-block;margin-top:12px;">View on Genius ↗</a>
+        </div>`;
     } else if (result.type === 'plain') {
       const html = (result.lyrics || '').split('\n').map(l => l.trim()
         ? `<p class="lyric-line">${l}</p>`
@@ -1861,6 +1872,16 @@ async function loadNPLyrics() {
     }
     if (result.type === 'not_found') {
       npContent.innerHTML = `<div class="np-lyrics-empty">🎤 No lyrics found for this song.</div>`;
+      return;
+    }
+    if (result.type === 'genius_link') {
+      npContent.innerHTML = `
+        <div class="np-lyrics-genius">
+          <div class="np-lyrics-empty">🎤 Lyrics not available here.</div>
+          <a href="${result.url}" target="_blank" rel="noopener" class="genius-link-btn">
+            View lyrics on Genius ↗
+          </a>
+        </div>`;
       return;
     }
     if (result.type === 'synced') {

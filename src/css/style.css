@@ -2757,6 +2757,30 @@ kbd {
   max-width: 280px;
   line-height: 1.5;
 }
+.genius-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ffed39 0%, #ffc600 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  border-radius: 24px;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.genius-link-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.np-lyrics-genius {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+}
 #btn-lyrics.active {
   color: var(--accent-primary);
 }
