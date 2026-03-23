@@ -6,13 +6,15 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fluffy Music — Stream Any Spotify Playlist for Free</title>
+    <title>Fluffy Music — Free Spotify Playlist Player | No Premium Required</title>
     <meta name="description"
-        content="Stream any Spotify playlist, album, or song via YouTube — for free. No login, no premium required. Save your library and sync across devices.">
+        content="Stream any Spotify playlist, album, or song via YouTube — for free. Fluffy Music is a fast, beautiful, and private web music player. No login or premium account required.">
+    <meta name="keywords" content="spotify to youtube, free music streaming, spotify playlist player, no premium spotify, fluffy music, web music player">
+    <link rel="canonical" href="https://fluffy-music.vercel.app/">
     <meta name="theme-color" content="#6C63FF">
 
     <!-- PWA -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.json?v=2">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,21 +22,21 @@
     <link rel="apple-touch-icon" href="/src/img/icon-192.png">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="Fluffy Music — Stream Any Spotify Playlist for Free">
+    <meta property="og:title" content="Fluffy Music — Free Spotify Playlist Player">
     <meta property="og:description"
         content="Stream any Spotify playlist or album via YouTube. Free. No premium needed. Save your library and sync across devices.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://fluffy-music.vercel.app">
-    <meta property="og:image" content="https://fluffy-music.vercel.app/src/img/icon-512.png">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
+    <meta property="og:image" content="https://fluffy-music.vercel.app/src/img/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Fluffy Music">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Fluffy Music — Free Spotify Playlist Streaming">
     <meta name="twitter:description" content="Stream any Spotify playlist via YouTube. Free. No premium needed.">
-    <meta name="twitter:image" content="https://fluffy-music.vercel.app/src/img/icon-512.png">
+    <meta name="twitter:image" content="https://fluffy-music.vercel.app/src/img/og-image.png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,7 +57,44 @@
     <link rel="icon" type="image/png" href="/src/img/icon.png">
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="/src/css/landing.css">
+    <link rel="stylesheet" href="/src/css/landing.css?v=2">
+
+    <!-- JSON-LD for AI Agents / Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Fluffy Music",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Web",
+      "description": "A free web-based music player that allows users to stream Spotify playlists, albums, and tracks via YouTube. No login or premium account required.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Spotify playlist streaming via YouTube",
+        "No premium account required",
+        "No login required",
+        "PWA support for offline access",
+        "Synced lyrics display",
+        "Customizable data modes (Data Saver, Normal, Standard)"
+      ],
+      "url": "https://fluffy-music.vercel.app"
+    }
+    </script>
+
+    <!-- PWA Install Helper (Head) -->
+    <script>
+        window.deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredInstallPrompt = e;
+            // Dispatch custom event for the UI to pick up
+            window.dispatchEvent(new CustomEvent('can-install'));
+        });
+    </script>
 </head>
 
 <body>
@@ -225,39 +264,34 @@
 
     <!-- PWA Install for landing page -->
     <script>
-        let landingInstallPrompt = null;
+        const installBtn = document.getElementById('land-install-btn');
 
-        window.addEventListener(
-            'beforeinstallprompt', (e) => {
-                e.preventDefault();
-                landingInstallPrompt = e;
-                const btn =
-                    document.getElementById(
-                        'land-install-btn');
-                if (btn) btn.classList.remove('hidden');
-            });
+        function updateInstallButton() {
+            if (window.deferredInstallPrompt && installBtn) {
+                installBtn.classList.remove('hidden');
+            }
+        }
 
-        window.addEventListener(
-            'appinstalled', () => {
-                landingInstallPrompt = null;
-                const btn =
-                    document.getElementById(
-                        'land-install-btn');
-                if (btn) btn.classList.add('hidden');
-            });
+        // Check if event already fired
+        updateInstallButton();
 
-        document.getElementById('land-install-btn')
-            ?.addEventListener('click', async () => {
-                if (!landingInstallPrompt) return;
-                landingInstallPrompt.prompt();
-                const { outcome } =
-                    await landingInstallPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    landingInstallPrompt = null;
-                    document.getElementById('land-install-btn')
-                        ?.classList.add('hidden');
-                }
-            });
+        // Listen for custom event or the original one (in case head script was too late)
+        window.addEventListener('can-install', updateInstallButton);
+
+        window.addEventListener('appinstalled', () => {
+            window.deferredInstallPrompt = null;
+            if (installBtn) installBtn.classList.add('hidden');
+        });
+
+        installBtn?.addEventListener('click', async () => {
+            if (!window.deferredInstallPrompt) return;
+            window.deferredInstallPrompt.prompt();
+            const { outcome } = await window.deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                window.deferredInstallPrompt = null;
+                installBtn.classList.add('hidden');
+            }
+        });
 
         if (window.lucide) lucide.createIcons();
     </script>

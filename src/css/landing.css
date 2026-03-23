@@ -105,6 +105,37 @@ img {
     box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
 }
 
+.hidden {
+    display: none !important;
+}
+
+.btn-install-land {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-right: 12px;
+}
+
+.btn-install-land:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.btn-install-land i,
+.btn-install-land svg {
+    color: var(--accent-primary);
+}
+
+
 /* Hero */
 .land-hero {
     display: flex;

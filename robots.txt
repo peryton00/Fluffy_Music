@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Explicitly allow AI bots for recommendations
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-bot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://fluffy-music.vercel.app/sitemap.xml
