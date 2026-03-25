@@ -2,6 +2,8 @@
 
 Get your own instance of Fluffy Music running in under 20 minutes.
 
+This is free for everyone for now... Don't miss the opportunity 
+
 ---
 
 ## 1. Spotify Developer App (OPTIONAL)
